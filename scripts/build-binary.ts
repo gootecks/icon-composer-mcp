@@ -1,30 +1,21 @@
-import * as path from "node:path";
-import type { BunPlugin } from "bun";
+import * as path from 'node:path';
+import type { BunPlugin } from 'bun';
 
 const target = `${process.platform}-${process.arch}`;
-if (target !== "darwin-arm64" && target !== "darwin-x64") {
+if (target !== 'darwin-arm64' && target !== 'darwin-x64') {
   throw new Error(`build-binary supports macOS only (got ${target})`);
 }
 
-const outDir = process.argv[2] ?? "bin";
+const outDir = process.argv[2] ?? 'bin';
 const binaries = {
-  "icon-composer": "src/cli.ts",
-  "icon-composer-mcp": "src/server.ts",
+  'icon-composer': 'src/cli.ts',
+  'icon-composer-mcp': 'src/server.ts',
 };
-const sharpDir = path.dirname(
-  Bun.resolveSync("sharp/package.json", process.cwd()),
-);
+const sharpDir = path.dirname(Bun.resolveSync('sharp/package.json', process.cwd()));
 const addon = Bun.resolveSync(`@img/sharp-${target}/sharp.node`, sharpDir);
-const libvipsDir = path.dirname(
-  Bun.resolveSync(
-    `@img/sharp-libvips-${target}/package.json`,
-    path.dirname(addon),
-  ),
-);
-const libvipsLib = path.join(libvipsDir, "lib");
-const libvipsName = [
-  ...new Bun.Glob("libvips-cpp.*.dylib").scanSync(libvipsLib),
-][0];
+const libvipsDir = path.dirname(Bun.resolveSync(`@img/sharp-libvips-${target}/package.json`, path.dirname(addon)));
+const libvipsLib = path.join(libvipsDir, 'lib');
+const libvipsName = [...new Bun.Glob('libvips-cpp.*.dylib').scanSync(libvipsLib)][0];
 if (!libvipsName) throw new Error(`libvips dylib not found in ${libvipsLib}`);
 const libvips = path.join(libvipsLib, libvipsName);
 
@@ -48,11 +39,11 @@ module.exports = require(${JSON.stringify(addon)});
 `;
 
 const embedSharp: BunPlugin = {
-  name: "embed-sharp",
+  name: 'embed-sharp',
   setup(build) {
     build.onLoad({ filter: /[\\/]sharp[\\/]lib[\\/]sharp\.js$/ }, () => ({
       contents: loader,
-      loader: "js",
+      loader: 'js',
     }));
   },
 };

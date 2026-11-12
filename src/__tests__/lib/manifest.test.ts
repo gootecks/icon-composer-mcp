@@ -1,12 +1,5 @@
 import { test, expect } from 'bun:test';
-import {
-  hexToIconColor,
-  solidFill,
-  createManifest,
-  addGroup,
-  addLayer,
-  resolveFill,
-} from '../../lib/manifest';
+import { hexToIconColor, solidFill, createManifest, addGroup, addLayer, resolveFill } from '../../lib/manifest';
 
 // hexToIconColor
 test('hexToIconColor #FF0000 -> srgb red', () => {

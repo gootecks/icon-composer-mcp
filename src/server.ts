@@ -57,14 +57,22 @@ server.tool(
     bundle_name: z.string().default('AppIcon').describe('Name for the .icon bundle (without extension)'),
     bg_color: z.string().describe('Background color as hex (e.g. #0A66C2)'),
     dark_bg_color: z.optional(z.string()).describe('Dark mode background color as hex'),
-    glyph_scale: z.number().min(0.1).max(3.0).default(1.75).describe('Scale of foreground glyph (0.1-2.0, default 1.0 fills ~65% of icon area in Icon Composer)'),
+    glyph_scale: z
+      .number()
+      .min(0.1)
+      .max(3.0)
+      .default(1.75)
+      .describe('Scale of foreground glyph (0.1-2.0, default 1.0 fills ~65% of icon area in Icon Composer)'),
     specular: z.boolean().default(true).describe('Enable specular highlights (Liquid Glass)'),
     shadow_kind: z.enum(['neutral', 'layer-color', 'none']).default('layer-color').describe('Shadow type'),
     shadow_opacity: z.number().min(0).max(1).default(0.5).describe('Shadow opacity'),
     blur_material: z.optional(z.number().min(0).max(1)).describe('Liquid Glass blur amount (0-1, omit to disable)'),
     translucency_enabled: z.boolean().default(false).describe('Enable translucency gradient'),
     translucency_value: z.number().min(0).max(1).default(0.4).describe('Translucency amount (0-1)'),
-    split_layers: z.boolean().default(true).describe('Split multi-shape SVGs into separate glass layers (each shape gets independent glass effects)'),
+    split_layers: z
+      .boolean()
+      .default(true)
+      .describe('Split multi-shape SVGs into separate glass layers (each shape gets independent glass effects)'),
   },
   async (params) => createIcon(params),
 );
@@ -83,11 +91,25 @@ server.tool(
     scale: z.number().min(0.1).max(2.0).default(1.0).describe('Layer scale'),
     offset_x: z.number().default(0).describe('X offset in points'),
     offset_y: z.number().default(0).describe('Y offset in points'),
-    blend_mode: z.enum([
-      'normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten',
-      'color-dodge', 'color-burn', 'soft-light', 'hard-light',
-      'difference', 'exclusion', 'plus-darker', 'plus-lighter',
-    ]).default('normal').describe('Blend mode'),
+    blend_mode: z
+      .enum([
+        'normal',
+        'multiply',
+        'screen',
+        'overlay',
+        'darken',
+        'lighten',
+        'color-dodge',
+        'color-burn',
+        'soft-light',
+        'hard-light',
+        'difference',
+        'exclusion',
+        'plus-darker',
+        'plus-lighter',
+      ])
+      .default('normal')
+      .describe('Blend mode'),
     glass: z.boolean().default(true).describe('Participate in Liquid Glass effects'),
   },
   async (params) => addLayerToBundle(params),
@@ -115,8 +137,15 @@ server.tool(
     bundle_path: z.string().describe('Path to .icon bundle'),
     group_index: z.number().describe('Source group index (0-based)'),
     layer_index: z.number().describe('Source layer index within the group (0-based)'),
-    to_group_index: z.optional(z.number()).describe('Destination group index (0-based); with create_group, the position where the new group is inserted (default 0, on top)'),
-    to_layer_index: z.number().default(0).describe('Position within the destination group (0 = top, clamped to the group size)'),
+    to_group_index: z
+      .optional(z.number())
+      .describe(
+        'Destination group index (0-based); with create_group, the position where the new group is inserted (default 0, on top)',
+      ),
+    to_layer_index: z
+      .number()
+      .default(0)
+      .describe('Position within the destination group (0 = top, clamped to the group size)'),
     create_group: z.boolean().default(false).describe('Move the layer into a new group'),
     group_name: z.optional(z.string()).describe('Name for the new group (default: the layer name)'),
   },
@@ -137,11 +166,26 @@ server.tool(
     translucency_enabled: z.optional(z.boolean()).describe('Enable translucency'),
     translucency_value: z.optional(z.number().min(0).max(1)).describe('Translucency amount'),
     opacity: z.optional(z.number().min(0).max(1)).describe('Group opacity'),
-    blend_mode: z.optional(z.enum([
-      'normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten',
-      'color-dodge', 'color-burn', 'soft-light', 'hard-light',
-      'difference', 'exclusion', 'plus-darker', 'plus-lighter',
-    ])).describe('Blend mode'),
+    blend_mode: z
+      .optional(
+        z.enum([
+          'normal',
+          'multiply',
+          'screen',
+          'overlay',
+          'darken',
+          'lighten',
+          'color-dodge',
+          'color-burn',
+          'soft-light',
+          'hard-light',
+          'difference',
+          'exclusion',
+          'plus-darker',
+          'plus-lighter',
+        ]),
+      )
+      .describe('Blend mode'),
     lighting: z.optional(z.enum(['combined', 'individual'])).describe('Lighting mode'),
   },
   async (params) => setGlassEffects(params),
@@ -161,16 +205,37 @@ server.tool(
     specular: z.optional(z.boolean()).describe('Specular for this appearance (target=group)'),
     shadow_kind: z.optional(z.enum(['neutral', 'layer-color', 'none'])).describe('Shadow kind (target=group)'),
     shadow_opacity: z.optional(z.number().min(0).max(1)).describe('Shadow opacity (target=group)'),
-    opacity: z.optional(z.number().min(0).max(1)).describe('Opacity for this appearance (target=group or target=layer)'),
-    blur_material: z.optional(z.number().min(0).max(1).nullable()).describe('Blur material for this appearance (target=group)'),
+    opacity: z
+      .optional(z.number().min(0).max(1))
+      .describe('Opacity for this appearance (target=group or target=layer)'),
+    blur_material: z
+      .optional(z.number().min(0).max(1).nullable())
+      .describe('Blur material for this appearance (target=group)'),
     translucency_enabled: z.optional(z.boolean()).describe('Enable translucency for this appearance (target=group)'),
-    translucency_value: z.optional(z.number().min(0).max(1)).describe('Translucency amount for this appearance (target=group)'),
+    translucency_value: z
+      .optional(z.number().min(0).max(1))
+      .describe('Translucency amount for this appearance (target=group)'),
     hidden: z.optional(z.boolean()).describe('Hidden state for this appearance (target=group or target=layer)'),
-    blend_mode: z.optional(z.enum([
-      'normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten',
-      'color-dodge', 'color-burn', 'soft-light', 'hard-light',
-      'difference', 'exclusion', 'plus-darker', 'plus-lighter',
-    ])).describe('Blend mode for this appearance (target=layer)'),
+    blend_mode: z
+      .optional(
+        z.enum([
+          'normal',
+          'multiply',
+          'screen',
+          'overlay',
+          'darken',
+          'lighten',
+          'color-dodge',
+          'color-burn',
+          'soft-light',
+          'hard-light',
+          'difference',
+          'exclusion',
+          'plus-darker',
+          'plus-lighter',
+        ]),
+      )
+      .describe('Blend mode for this appearance (target=layer)'),
     fill_color: z.optional(z.string()).describe('Fill color hex for this appearance (target=layer)'),
     position_scale: z.optional(z.number().min(0.05).max(3.0)).describe('Position scale for this appearance'),
     position_offset_x: z.optional(z.number()).describe('Position X offset for this appearance'),
@@ -182,18 +247,36 @@ server.tool(
 // ── Tool: export_preview ──
 server.tool(
   'export_preview',
-  'Render a preview of an .icon bundle. Uses Apple\'s ictool for Liquid Glass rendering by default (falls back to flat composite if Icon Composer is not installed). Supports canvas backgrounds and zoom.',
+  "Render a preview of an .icon bundle. Uses Apple's ictool for Liquid Glass rendering by default (falls back to flat composite if Icon Composer is not installed). Supports canvas backgrounds and zoom.",
   {
     bundle_path: z.string().describe('Path to .icon bundle'),
     output_path: z.string().describe('Output path for the PNG file'),
     size: z.number().min(16).max(2048).default(1024).describe('Output size in pixels'),
     appearance: z.optional(z.enum(['dark', 'tinted'])).describe('Appearance mode to preview (omit for default/light)'),
     flat: z.boolean().default(false).describe('Force flat composite rendering (skip ictool/Liquid Glass)'),
-    canvas_bg: z.optional(z.enum(['none', 'light', 'dark', 'checkerboard', 'homescreen-light', 'homescreen-dark'])).describe('Simple preset canvas background'),
-    apple_preset: z.optional(z.enum(['sine-purple-orange', 'sine-gasflame', 'sine-magenta', 'sine-green-yellow', 'sine-purple-orange-black', 'sine-gray'])).describe('Apple Icon Composer preset background (overrides canvas_bg)'),
+    canvas_bg: z
+      .optional(z.enum(['none', 'light', 'dark', 'checkerboard', 'homescreen-light', 'homescreen-dark']))
+      .describe('Simple preset canvas background'),
+    apple_preset: z
+      .optional(
+        z.enum([
+          'sine-purple-orange',
+          'sine-gasflame',
+          'sine-magenta',
+          'sine-green-yellow',
+          'sine-purple-orange-black',
+          'sine-gray',
+        ]),
+      )
+      .describe('Apple Icon Composer preset background (overrides canvas_bg)'),
     canvas_bg_color: z.optional(z.string()).describe('Custom hex color for canvas background'),
     canvas_bg_image: z.optional(z.string()).describe('Path to custom background image'),
-    zoom: z.number().min(0.1).max(3.0).default(1.0).describe('Zoom level — icon size relative to canvas (1.0 = full canvas, 0.5 = half size)'),
+    zoom: z
+      .number()
+      .min(0.1)
+      .max(3.0)
+      .default(1.0)
+      .describe('Zoom level — icon size relative to canvas (1.0 = full canvas, 0.5 = half size)'),
     return_image: z.boolean().default(true).describe('Return the rendered image inline as base64 (default true)'),
   },
   async (params) => exportPreview(params),
@@ -216,9 +299,14 @@ server.tool(
   {
     bundle_path: z.string().describe('Path to .icon bundle'),
     fill_type: z.enum(['solid', 'gradient', 'automatic', 'none']).describe('Fill type'),
-    color: z.optional(z.string()).describe('Hex color for solid fill, or the gradient color at the top when gradient_angle is 0'),
+    color: z
+      .optional(z.string())
+      .describe('Hex color for solid fill, or the gradient color at the top when gradient_angle is 0'),
     color2: z.optional(z.string()).describe('Second hex color for gradient, at the bottom when gradient_angle is 0'),
-    gradient_angle: z.number().default(0).describe('Gradient angle in degrees (0 = vertical, color at top and color2 at bottom)'),
+    gradient_angle: z
+      .number()
+      .default(0)
+      .describe('Gradient angle in degrees (0 = vertical, color at top and color2 at bottom)'),
   },
   async (params) => setFill(params),
 );
@@ -232,7 +320,9 @@ server.tool(
     target: z.enum(['layer', 'group']).default('layer').describe('Whether to set position on a layer or group'),
     group_index: z.number().default(0).describe('Group index (0-based)'),
     layer_index: z.optional(z.number()).describe('Layer index within the group (0-based, required for target=layer)'),
-    scale: z.optional(z.number().min(0.05).max(3.0)).describe('Scale factor (0.05-3.0, where 1.0 = full size, 0.5 = half, 2.0 = double)'),
+    scale: z
+      .optional(z.number().min(0.05).max(3.0))
+      .describe('Scale factor (0.05-3.0, where 1.0 = full size, 0.5 = half, 2.0 = double)'),
     offset_x: z.optional(z.number()).describe('X offset in points'),
     offset_y: z.optional(z.number()).describe('Y offset in points'),
   },
@@ -253,23 +343,46 @@ server.tool(
 // ── Tool: render_liquid_glass ──
 server.tool(
   'render_liquid_glass',
-  'Render a pixel-perfect Liquid Glass preview using Apple\'s ictool. Produces the exact same rendering as iOS 26. Requires Icon Composer.app installed.',
+  "Render a pixel-perfect Liquid Glass preview using Apple's ictool. Produces the exact same rendering as iOS 26. Requires Icon Composer.app installed.",
   {
     bundle_path: z.string().describe('Path to .icon bundle'),
     output_path: z.string().describe('Output path for the PNG file'),
     platform: z.enum(['iOS', 'macOS', 'watchOS']).default('iOS').describe('Target platform'),
-    rendition: z.enum(['Default', 'Dark', 'TintedLight', 'TintedDark', 'ClearLight', 'ClearDark']).default('Default').describe('Appearance rendition'),
+    rendition: z
+      .enum(['Default', 'Dark', 'TintedLight', 'TintedDark', 'ClearLight', 'ClearDark'])
+      .default('Default')
+      .describe('Appearance rendition'),
     width: z.number().min(16).max(2048).default(1024).describe('Output width in pixels'),
     height: z.number().min(16).max(2048).default(1024).describe('Output height in pixels'),
     scale: z.number().min(1).max(3).default(1).describe('Scale factor (1x, 2x, 3x)'),
-    light_angle: z.optional(z.number().min(0).max(360)).describe('Light angle in degrees (0-360). Controls direction of specular highlights and shadows.'),
+    light_angle: z
+      .optional(z.number().min(0).max(360))
+      .describe('Light angle in degrees (0-360). Controls direction of specular highlights and shadows.'),
     tint_color: z.optional(z.number().min(0).max(1)).describe('Tint hue (0-1) for tinted renditions'),
     tint_strength: z.optional(z.number().min(0).max(1)).describe('Tint strength (0-1) for tinted renditions'),
-    canvas_bg: z.optional(z.enum(['none', 'light', 'dark', 'checkerboard', 'homescreen-light', 'homescreen-dark'])).describe('Simple preset canvas background'),
-    apple_preset: z.optional(z.enum(['sine-purple-orange', 'sine-gasflame', 'sine-magenta', 'sine-green-yellow', 'sine-purple-orange-black', 'sine-gray'])).describe('Apple Icon Composer preset background (overrides canvas_bg)'),
+    canvas_bg: z
+      .optional(z.enum(['none', 'light', 'dark', 'checkerboard', 'homescreen-light', 'homescreen-dark']))
+      .describe('Simple preset canvas background'),
+    apple_preset: z
+      .optional(
+        z.enum([
+          'sine-purple-orange',
+          'sine-gasflame',
+          'sine-magenta',
+          'sine-green-yellow',
+          'sine-purple-orange-black',
+          'sine-gray',
+        ]),
+      )
+      .describe('Apple Icon Composer preset background (overrides canvas_bg)'),
     canvas_bg_color: z.optional(z.string()).describe('Custom hex color for canvas background'),
     canvas_bg_image: z.optional(z.string()).describe('Path to custom background image'),
-    zoom: z.number().min(0.1).max(3.0).default(1.0).describe('Zoom level — icon size relative to canvas (1.0 = full canvas, 0.5 = half size)'),
+    zoom: z
+      .number()
+      .min(0.1)
+      .max(3.0)
+      .default(1.0)
+      .describe('Zoom level — icon size relative to canvas (1.0 = full canvas, 0.5 = half size)'),
     return_image: z.boolean().default(true).describe('Return the rendered image inline as base64 (default true)'),
   },
   async (params) => renderLiquidGlass(params),
@@ -278,7 +391,7 @@ server.tool(
 // ── Tool: export_marketing ──
 server.tool(
   'export_marketing',
-  'Export an opaque, square marketing PNG for App Store Connect, with no alpha channel. Uses Apple\'s ictool for Liquid Glass rendering by default (falls back to flat composite if Icon Composer is not installed). Produces a 1024x1024 (default) PNG ready for upload.',
+  "Export an opaque, square marketing PNG for App Store Connect, with no alpha channel. Uses Apple's ictool for Liquid Glass rendering by default (falls back to flat composite if Icon Composer is not installed). Produces a 1024x1024 (default) PNG ready for upload.",
   {
     bundle_path: z.string().describe('Path to .icon bundle'),
     output_path: z.string().describe('Output path for the PNG file'),
@@ -301,11 +414,12 @@ server.prompt(
     dark_color: z.string().optional().describe('Dark mode background color (optional)'),
   },
   async (params) => ({
-    messages: [{
-      role: 'user',
-      content: {
-        type: 'text',
-        text: `Create an Apple app icon with Liquid Glass effects using these details:
+    messages: [
+      {
+        role: 'user',
+        content: {
+          type: 'text',
+          text: `Create an Apple app icon with Liquid Glass effects using these details:
 - Logo/glyph image: ${params.image_path}
 - Output directory: ${params.output_dir}
 - Brand color: ${params.brand_color}${params.dark_color ? `\n- Dark mode color: ${params.dark_color}` : ''}
@@ -316,8 +430,9 @@ Steps:
 3. Call export_preview with canvas_bg_color set to the brand color to show the icon on a matching background
 4. Ask if I want to adjust glass effects, scale, or colors
 5. When I'm happy, call export_marketing for the App Store PNG`,
+        },
       },
-    }],
+    ],
   }),
 );
 
@@ -329,17 +444,19 @@ server.prompt(
     dark_color: z.string().describe('Dark mode background color as hex'),
   },
   async (params) => ({
-    messages: [{
-      role: 'user',
-      content: {
-        type: 'text',
-        text: `Add dark mode to the icon at ${params.bundle_path}:
+    messages: [
+      {
+        role: 'user',
+        content: {
+          type: 'text',
+          text: `Add dark mode to the icon at ${params.bundle_path}:
 1. Call read_icon to see the current state
 2. Call set_appearances with target "fill", appearance "dark", bg_color "${params.dark_color}"
 3. Call export_preview with appearance "dark" to show the dark mode version
 4. Show both light and dark previews side by side for comparison`,
+        },
       },
-    }],
+    ],
   }),
 );
 
@@ -351,17 +468,19 @@ server.prompt(
     output_dir: z.string().describe('Directory for exported files'),
   },
   async (params) => ({
-    messages: [{
-      role: 'user',
-      content: {
-        type: 'text',
-        text: `Export App Store assets from ${params.bundle_path}:
+    messages: [
+      {
+        role: 'user',
+        content: {
+          type: 'text',
+          text: `Export App Store assets from ${params.bundle_path}:
 1. Call export_marketing with output_path "${params.output_dir}/marketing-1024.png" — this is the opaque 1024x1024 PNG required by App Store Connect (no alpha channel)
 2. Call export_preview with size 512 to generate a preview for review
 3. If dark mode is configured, also export a dark mode preview
 4. Remind the user that the .icon bundle itself goes into the Xcode project's asset catalog`,
+        },
       },
-    }],
+    ],
   }),
 );
 

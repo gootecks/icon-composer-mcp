@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import sharp from 'sharp';
 import { createManifest, addGroup, addLayer } from './lib/manifest';
 import { writeIconBundle, readIconBundle, saveManifest } from './lib/bundle';
-import { renderPreview, compositeOnBackground, type ApplePresetName } from './lib/render';
+import { renderPreview, type ApplePresetName } from './lib/render';
 import { ictoolAvailable, renderWithIctool } from './lib/ictool';
 import { setFill } from './lib/ops-glass';
 import { exportPreview, renderLiquidGlass } from './lib/ops-render';
@@ -34,22 +34,22 @@ interface TestResult {
 async function createWhiteCircleGlyph(): Promise<Buffer> {
   // Circle fills the full 512x512 — no transparent padding.
   // This ensures scale values are meaningful for both flat renderer and ictool.
-  return sharp(Buffer.from(
-    '<svg width="512" height="512"><circle cx="256" cy="256" r="256" fill="white"/></svg>'
-  )).png().toBuffer();
+  return sharp(Buffer.from('<svg width="512" height="512"><circle cx="256" cy="256" r="256" fill="white"/></svg>'))
+    .png()
+    .toBuffer();
 }
 
 async function createRedSquareGlyph(): Promise<Buffer> {
   // Square fills the full 512x512
-  return sharp(Buffer.from(
-    '<svg width="512" height="512"><rect width="512" height="512" fill="red" rx="20"/></svg>'
-  )).png().toBuffer();
+  return sharp(Buffer.from('<svg width="512" height="512"><rect width="512" height="512" fill="red" rx="20"/></svg>'))
+    .png()
+    .toBuffer();
 }
 
 async function createBlueCircleGlyph(): Promise<Buffer> {
-  return sharp(Buffer.from(
-    '<svg width="512" height="512"><circle cx="256" cy="256" r="256" fill="#0055CC"/></svg>'
-  )).png().toBuffer();
+  return sharp(Buffer.from('<svg width="512" height="512"><circle cx="256" cy="256" r="256" fill="#0055CC"/></svg>'))
+    .png()
+    .toBuffer();
 }
 
 // ── Helper: create a base icon bundle ──
@@ -69,7 +69,7 @@ async function createBaseBundle(
     translucencyEnabled?: boolean;
     translucencyValue?: number;
     glass?: boolean;
-  } = {}
+  } = {},
 ): Promise<string> {
   const glyphPath = path.join(tmpDir, `${name}-glyph.png`);
   await fs.writeFile(glyphPath, glyphBuffer);
@@ -88,9 +88,7 @@ async function createBaseBundle(
       opacity: options.shadowOpacity ?? 0.5,
     },
     blurMaterial: options.blurMaterial ?? null,
-    translucency: options.translucencyEnabled
-      ? { enabled: true, value: options.translucencyValue ?? 0.4 }
-      : undefined,
+    translucency: options.translucencyEnabled ? { enabled: true, value: options.translucencyValue ?? 0.4 } : undefined,
   });
 
   addLayer(group, {
@@ -108,58 +106,15 @@ async function createBaseBundle(
 
 // ── Helper: render a preview from a bundle path ──
 
-async function renderFlatPreview(bundlePath: string, outputPath: string, size: number = 512, appearance?: 'dark' | 'tinted'): Promise<void> {
+async function renderFlatPreview(
+  bundlePath: string,
+  outputPath: string,
+  size: number = 512,
+  appearance?: 'dark' | 'tinted',
+): Promise<void> {
   const { manifest, assets } = await readIconBundle(bundlePath);
   const buffer = await renderPreview(manifest, assets, size, appearance);
   await fs.writeFile(outputPath, buffer);
-}
-
-// ── Helper: render with canvas background ──
-
-async function renderWithCanvas(
-  bundlePath: string,
-  outputPath: string,
-  canvasBg: Parameters<typeof compositeOnBackground>[1],
-  size: number = 512,
-  zoom: number = 1.0,
-  appearance?: 'dark' | 'tinted'
-): Promise<void> {
-  const { manifest, assets } = await readIconBundle(bundlePath);
-  let iconBuffer = await renderPreview(manifest, assets, size, appearance);
-
-  if (zoom > 1.0) {
-    // For zoom > 1.0: scale the icon up, then crop center to canvas size
-    const scaledSize = Math.round(size * zoom);
-    const scaledIcon = await sharp(iconBuffer)
-      .resize(scaledSize, scaledSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-      .png()
-      .toBuffer();
-
-    // Resolve background at canvas size
-    const { resolveCanvasBackground } = await import('./lib/render');
-    const bgBuffer = await resolveCanvasBackground(canvasBg, size);
-
-    // Extract center crop from scaled icon
-    const cropOffset = Math.round((scaledSize - size) / 2);
-    const croppedIcon = await sharp(scaledIcon)
-      .extract({ left: cropOffset, top: cropOffset, width: size, height: size })
-      .png()
-      .toBuffer();
-
-    if (bgBuffer) {
-      const result = await sharp(bgBuffer)
-        .composite([{ input: croppedIcon }])
-        .png()
-        .toBuffer();
-      await fs.writeFile(outputPath, result);
-    } else {
-      await fs.writeFile(outputPath, croppedIcon);
-    }
-  } else {
-    const iconSize = Math.round(size * zoom);
-    const buffer = await compositeOnBackground(iconBuffer, canvasBg, size, iconSize);
-    await fs.writeFile(outputPath, buffer);
-  }
 }
 
 // ── Test case definitions ──
@@ -169,136 +124,612 @@ function defineTestCases(hasIctool: boolean, hasApplePresets: boolean): VisualTe
 
   // Category 1: Background Fill
   cases.push(
-    { id: 'fill-solid-blue', category: 'Background Fill', description: 'Blue LinkedIn-style background with white circle glyph centered at 65% scale', command: 'icon-composer create glyph.png ./out --bg-color "#0A66C2"', filename: 'fill-solid-blue.png' },
-    { id: 'fill-solid-red', category: 'Background Fill', description: 'Bright red background', command: 'icon-composer create glyph.png ./out --bg-color "#FF0000"', filename: 'fill-solid-red.png' },
-    { id: 'fill-solid-black', category: 'Background Fill', description: 'Black background', command: 'icon-composer create glyph.png ./out --bg-color "#000000"', filename: 'fill-solid-black.png' },
-    { id: 'fill-solid-white', category: 'Background Fill', description: 'White background, glyph may be hard to see', command: 'icon-composer create glyph.png ./out --bg-color "#FFFFFF"', filename: 'fill-solid-white.png' },
-    { id: 'fill-gradient-vertical', category: 'Background Fill', description: 'Red at top fading to blue at bottom', command: 'icon-composer fill bundle.icon --type gradient --color "#FF0000" --color2 "#0000FF" --gradient-angle 0', filename: 'fill-gradient-vertical.png' },
-    { id: 'fill-gradient-horizontal', category: 'Background Fill', description: 'Red on left fading to blue on right', command: 'icon-composer fill bundle.icon --type gradient --color "#FF0000" --color2 "#0000FF" --gradient-angle 90', filename: 'fill-gradient-horizontal.png' },
-    { id: 'fill-gradient-diagonal', category: 'Background Fill', description: 'Red at top-left to blue at bottom-right', command: 'icon-composer fill bundle.icon --type gradient --color "#FF0000" --color2 "#0000FF" --gradient-angle 45', filename: 'fill-gradient-diagonal.png' },
-    { id: 'fill-automatic', category: 'Background Fill', description: 'System-determined fill', command: 'icon-composer fill bundle.icon --type automatic', filename: 'fill-automatic.png' },
-    { id: 'fill-none', category: 'Background Fill', description: 'No background fill (transparent)', command: 'icon-composer fill bundle.icon --type none', filename: 'fill-none.png' },
+    {
+      id: 'fill-solid-blue',
+      category: 'Background Fill',
+      description: 'Blue LinkedIn-style background with white circle glyph centered at 65% scale',
+      command: 'icon-composer create glyph.png ./out --bg-color "#0A66C2"',
+      filename: 'fill-solid-blue.png',
+    },
+    {
+      id: 'fill-solid-red',
+      category: 'Background Fill',
+      description: 'Bright red background',
+      command: 'icon-composer create glyph.png ./out --bg-color "#FF0000"',
+      filename: 'fill-solid-red.png',
+    },
+    {
+      id: 'fill-solid-black',
+      category: 'Background Fill',
+      description: 'Black background',
+      command: 'icon-composer create glyph.png ./out --bg-color "#000000"',
+      filename: 'fill-solid-black.png',
+    },
+    {
+      id: 'fill-solid-white',
+      category: 'Background Fill',
+      description: 'White background, glyph may be hard to see',
+      command: 'icon-composer create glyph.png ./out --bg-color "#FFFFFF"',
+      filename: 'fill-solid-white.png',
+    },
+    {
+      id: 'fill-gradient-vertical',
+      category: 'Background Fill',
+      description: 'Red at top fading to blue at bottom',
+      command: 'icon-composer fill bundle.icon --type gradient --color "#FF0000" --color2 "#0000FF" --gradient-angle 0',
+      filename: 'fill-gradient-vertical.png',
+    },
+    {
+      id: 'fill-gradient-horizontal',
+      category: 'Background Fill',
+      description: 'Red on left fading to blue on right',
+      command:
+        'icon-composer fill bundle.icon --type gradient --color "#FF0000" --color2 "#0000FF" --gradient-angle 90',
+      filename: 'fill-gradient-horizontal.png',
+    },
+    {
+      id: 'fill-gradient-diagonal',
+      category: 'Background Fill',
+      description: 'Red at top-left to blue at bottom-right',
+      command:
+        'icon-composer fill bundle.icon --type gradient --color "#FF0000" --color2 "#0000FF" --gradient-angle 45',
+      filename: 'fill-gradient-diagonal.png',
+    },
+    {
+      id: 'fill-automatic',
+      category: 'Background Fill',
+      description: 'System-determined fill',
+      command: 'icon-composer fill bundle.icon --type automatic',
+      filename: 'fill-automatic.png',
+    },
+    {
+      id: 'fill-none',
+      category: 'Background Fill',
+      description: 'No background fill (transparent)',
+      command: 'icon-composer fill bundle.icon --type none',
+      filename: 'fill-none.png',
+    },
   );
 
   // Category 2: Dark Mode
   cases.push(
-    { id: 'dark-mode-light', category: 'Dark Mode', description: 'White background with blue circle glyph', command: 'icon-composer preview bundle.icon out.png', filename: 'dark-mode-light.png' },
-    { id: 'dark-mode-dark', category: 'Dark Mode', description: 'Black background with blue circle glyph', command: 'icon-composer preview bundle.icon out.png --appearance dark', filename: 'dark-mode-dark.png' },
-    { id: 'dark-mode-blue-light', category: 'Dark Mode', description: 'Bright blue', command: 'icon-composer preview bundle.icon out.png (light fill #0A66C2)', filename: 'dark-mode-blue-light.png' },
-    { id: 'dark-mode-blue-dark', category: 'Dark Mode', description: 'Dark navy blue', command: 'icon-composer preview bundle.icon out.png --appearance dark (dark fill #001F3F)', filename: 'dark-mode-blue-dark.png' },
+    {
+      id: 'dark-mode-light',
+      category: 'Dark Mode',
+      description: 'White background with blue circle glyph',
+      command: 'icon-composer preview bundle.icon out.png',
+      filename: 'dark-mode-light.png',
+    },
+    {
+      id: 'dark-mode-dark',
+      category: 'Dark Mode',
+      description: 'Black background with blue circle glyph',
+      command: 'icon-composer preview bundle.icon out.png --appearance dark',
+      filename: 'dark-mode-dark.png',
+    },
+    {
+      id: 'dark-mode-blue-light',
+      category: 'Dark Mode',
+      description: 'Bright blue',
+      command: 'icon-composer preview bundle.icon out.png (light fill #0A66C2)',
+      filename: 'dark-mode-blue-light.png',
+    },
+    {
+      id: 'dark-mode-blue-dark',
+      category: 'Dark Mode',
+      description: 'Dark navy blue',
+      command: 'icon-composer preview bundle.icon out.png --appearance dark (dark fill #001F3F)',
+      filename: 'dark-mode-blue-dark.png',
+    },
   );
 
   // Category 3: Glass Effects
   cases.push(
-    { id: 'glass-specular-on', category: 'Glass Effects', description: 'Visible highlight/reflection on glyph', command: 'icon-composer glass bundle.icon --specular', filename: 'glass-specular-on.png' },
-    { id: 'glass-specular-off', category: 'Glass Effects', description: 'Flat, no highlight', command: 'icon-composer glass bundle.icon --no-specular', filename: 'glass-specular-off.png' },
-    { id: 'glass-blur-0.3', category: 'Glass Effects', description: 'Slight blur on gradient bg (red-blue diagonal)', command: 'icon-composer glass bundle.icon --blur-material 0.3', filename: 'glass-blur-0.3.png' },
-    { id: 'glass-blur-0.8', category: 'Glass Effects', description: 'Heavy blur on gradient bg (should be noticeably blurrier)', command: 'icon-composer glass bundle.icon --blur-material 0.8', filename: 'glass-blur-0.8.png' },
-    { id: 'glass-shadow-layer-color', category: 'Glass Effects', description: 'Red glyph with red-tinted shadow (layer-color)', command: 'icon-composer glass bundle.icon --shadow-kind layer-color', filename: 'glass-shadow-layer-color.png' },
-    { id: 'glass-shadow-neutral', category: 'Glass Effects', description: 'Red glyph with gray shadow (neutral, not red)', command: 'icon-composer glass bundle.icon --shadow-kind neutral', filename: 'glass-shadow-neutral.png' },
-    { id: 'glass-shadow-none', category: 'Glass Effects', description: 'Red glyph with no drop shadow', command: 'icon-composer glass bundle.icon --shadow-kind none', filename: 'glass-shadow-none.png' },
-    { id: 'glass-translucency', category: 'Glass Effects', description: 'Glyph should be see-through (bg bleeds through) at max value', command: 'icon-composer glass bundle.icon --translucency-enabled --translucency-value 1.0', filename: 'glass-translucency.png' },
+    {
+      id: 'glass-specular-on',
+      category: 'Glass Effects',
+      description: 'Visible highlight/reflection on glyph',
+      command: 'icon-composer glass bundle.icon --specular',
+      filename: 'glass-specular-on.png',
+    },
+    {
+      id: 'glass-specular-off',
+      category: 'Glass Effects',
+      description: 'Flat, no highlight',
+      command: 'icon-composer glass bundle.icon --no-specular',
+      filename: 'glass-specular-off.png',
+    },
+    {
+      id: 'glass-blur-0.3',
+      category: 'Glass Effects',
+      description: 'Slight blur on gradient bg (red-blue diagonal)',
+      command: 'icon-composer glass bundle.icon --blur-material 0.3',
+      filename: 'glass-blur-0.3.png',
+    },
+    {
+      id: 'glass-blur-0.8',
+      category: 'Glass Effects',
+      description: 'Heavy blur on gradient bg (should be noticeably blurrier)',
+      command: 'icon-composer glass bundle.icon --blur-material 0.8',
+      filename: 'glass-blur-0.8.png',
+    },
+    {
+      id: 'glass-shadow-layer-color',
+      category: 'Glass Effects',
+      description: 'Red glyph with red-tinted shadow (layer-color)',
+      command: 'icon-composer glass bundle.icon --shadow-kind layer-color',
+      filename: 'glass-shadow-layer-color.png',
+    },
+    {
+      id: 'glass-shadow-neutral',
+      category: 'Glass Effects',
+      description: 'Red glyph with gray shadow (neutral, not red)',
+      command: 'icon-composer glass bundle.icon --shadow-kind neutral',
+      filename: 'glass-shadow-neutral.png',
+    },
+    {
+      id: 'glass-shadow-none',
+      category: 'Glass Effects',
+      description: 'Red glyph with no drop shadow',
+      command: 'icon-composer glass bundle.icon --shadow-kind none',
+      filename: 'glass-shadow-none.png',
+    },
+    {
+      id: 'glass-translucency',
+      category: 'Glass Effects',
+      description: 'Glyph should be see-through (bg bleeds through) at max value',
+      command: 'icon-composer glass bundle.icon --translucency-enabled --translucency-value 1.0',
+      filename: 'glass-translucency.png',
+    },
   );
 
   // Category 4: Glyph Scale
   cases.push(
-    { id: 'scale-0.2', category: 'Glyph Scale', description: 'Tiny glyph centered in large background', command: 'icon-composer create glyph.png ./out --bg-color "#0A66C2" --glyph-scale 0.2', filename: 'scale-0.2.png' },
-    { id: 'scale-0.5', category: 'Glyph Scale', description: 'Medium glyph', command: 'icon-composer create glyph.png ./out --bg-color "#0A66C2" --glyph-scale 0.5', filename: 'scale-0.5.png' },
-    { id: 'scale-0.65', category: 'Glyph Scale', description: 'Standard Apple-recommended size', command: 'icon-composer create glyph.png ./out --bg-color "#0A66C2" --glyph-scale 0.65', filename: 'scale-0.65.png' },
-    { id: 'scale-0.9', category: 'Glyph Scale', description: 'Glyph nearly fills the icon', command: 'icon-composer create glyph.png ./out --bg-color "#0A66C2" --glyph-scale 0.9', filename: 'scale-0.9.png' },
-    { id: 'scale-1.0', category: 'Glyph Scale', description: 'Glyph fills entire icon area', command: 'icon-composer create glyph.png ./out --bg-color "#0A66C2" --glyph-scale 1.0', filename: 'scale-1.0.png' },
-    { id: 'scale-2.0', category: 'Glyph Scale', description: 'Glyph at 2x — extends beyond normal icon area', command: 'icon-composer create glyph.png ./out --bg-color "#0A66C2" --glyph-scale 2.0', filename: 'scale-2.0.png' },
-    { id: 'scale-5.0', category: 'Glyph Scale', description: 'Glyph at 5x — massively oversized, should crop gracefully', command: 'icon-composer create glyph.png ./out --bg-color "#0A66C2" --glyph-scale 5.0', filename: 'scale-5.0.png' },
-    { id: 'scale-2.0-flat', category: 'Glyph Scale', description: 'Scale 2.0 flat render on square bg', command: 'icon-composer preview bundle.icon out.png --flat --glyph-scale 2.0', filename: 'scale-2.0-flat.png' },
-    { id: 'scale-2.0-app', category: 'Glyph Scale', description: 'Scale 2.0 glass render on app bg', command: 'icon-composer preview bundle.icon out.png --glyph-scale 2.0 --canvas-bg dark', filename: 'scale-2.0-app.png' },
-    { id: 'scale-5.0-flat', category: 'Glyph Scale', description: 'Scale 5.0 flat render on square bg', command: 'icon-composer preview bundle.icon out.png --flat --glyph-scale 5.0', filename: 'scale-5.0-flat.png' },
-    { id: 'scale-5.0-app', category: 'Glyph Scale', description: 'Scale 5.0 glass render on app bg', command: 'icon-composer preview bundle.icon out.png --glyph-scale 5.0 --canvas-bg dark', filename: 'scale-5.0-app.png' },
+    {
+      id: 'scale-0.2',
+      category: 'Glyph Scale',
+      description: 'Tiny glyph centered in large background',
+      command: 'icon-composer create glyph.png ./out --bg-color "#0A66C2" --glyph-scale 0.2',
+      filename: 'scale-0.2.png',
+    },
+    {
+      id: 'scale-0.5',
+      category: 'Glyph Scale',
+      description: 'Medium glyph',
+      command: 'icon-composer create glyph.png ./out --bg-color "#0A66C2" --glyph-scale 0.5',
+      filename: 'scale-0.5.png',
+    },
+    {
+      id: 'scale-0.65',
+      category: 'Glyph Scale',
+      description: 'Standard Apple-recommended size',
+      command: 'icon-composer create glyph.png ./out --bg-color "#0A66C2" --glyph-scale 0.65',
+      filename: 'scale-0.65.png',
+    },
+    {
+      id: 'scale-0.9',
+      category: 'Glyph Scale',
+      description: 'Glyph nearly fills the icon',
+      command: 'icon-composer create glyph.png ./out --bg-color "#0A66C2" --glyph-scale 0.9',
+      filename: 'scale-0.9.png',
+    },
+    {
+      id: 'scale-1.0',
+      category: 'Glyph Scale',
+      description: 'Glyph fills entire icon area',
+      command: 'icon-composer create glyph.png ./out --bg-color "#0A66C2" --glyph-scale 1.0',
+      filename: 'scale-1.0.png',
+    },
+    {
+      id: 'scale-2.0',
+      category: 'Glyph Scale',
+      description: 'Glyph at 2x — extends beyond normal icon area',
+      command: 'icon-composer create glyph.png ./out --bg-color "#0A66C2" --glyph-scale 2.0',
+      filename: 'scale-2.0.png',
+    },
+    {
+      id: 'scale-5.0',
+      category: 'Glyph Scale',
+      description: 'Glyph at 5x — massively oversized, should crop gracefully',
+      command: 'icon-composer create glyph.png ./out --bg-color "#0A66C2" --glyph-scale 5.0',
+      filename: 'scale-5.0.png',
+    },
+    {
+      id: 'scale-2.0-flat',
+      category: 'Glyph Scale',
+      description: 'Scale 2.0 flat render on square bg',
+      command: 'icon-composer preview bundle.icon out.png --flat --glyph-scale 2.0',
+      filename: 'scale-2.0-flat.png',
+    },
+    {
+      id: 'scale-2.0-app',
+      category: 'Glyph Scale',
+      description: 'Scale 2.0 glass render on app bg',
+      command: 'icon-composer preview bundle.icon out.png --glyph-scale 2.0 --canvas-bg dark',
+      filename: 'scale-2.0-app.png',
+    },
+    {
+      id: 'scale-5.0-flat',
+      category: 'Glyph Scale',
+      description: 'Scale 5.0 flat render on square bg',
+      command: 'icon-composer preview bundle.icon out.png --flat --glyph-scale 5.0',
+      filename: 'scale-5.0-flat.png',
+    },
+    {
+      id: 'scale-5.0-app',
+      category: 'Glyph Scale',
+      description: 'Scale 5.0 glass render on app bg',
+      command: 'icon-composer preview bundle.icon out.png --glyph-scale 5.0 --canvas-bg dark',
+      filename: 'scale-5.0-app.png',
+    },
   );
 
   // Category 5: Canvas Backgrounds
   cases.push(
-    { id: 'canvas-none', category: 'Canvas Backgrounds', description: 'Icon only, no surrounding background', command: 'icon-composer preview bundle.icon out.png', filename: 'canvas-none.png' },
-    { id: 'canvas-light', category: 'Canvas Backgrounds', description: 'Light gray background behind icon', command: 'icon-composer preview bundle.icon out.png --canvas-bg light', filename: 'canvas-light.png' },
-    { id: 'canvas-dark', category: 'Canvas Backgrounds', description: 'Dark background behind icon', command: 'icon-composer preview bundle.icon out.png --canvas-bg dark', filename: 'canvas-dark.png' },
-    { id: 'canvas-checkerboard', category: 'Canvas Backgrounds', description: 'White/gray checkerboard (transparency indicator)', command: 'icon-composer preview bundle.icon out.png --canvas-bg checkerboard', filename: 'canvas-checkerboard.png' },
-    { id: 'canvas-homescreen-light', category: 'Canvas Backgrounds', description: 'iOS light homescreen wallpaper', command: 'icon-composer preview bundle.icon out.png --canvas-bg homescreen-light', filename: 'canvas-homescreen-light.png' },
-    { id: 'canvas-homescreen-dark', category: 'Canvas Backgrounds', description: 'iOS dark homescreen wallpaper', command: 'icon-composer preview bundle.icon out.png --canvas-bg homescreen-dark', filename: 'canvas-homescreen-dark.png' },
-    { id: 'canvas-solid-color', category: 'Canvas Backgrounds', description: 'Gold/yellow solid background', command: 'icon-composer preview bundle.icon out.png --canvas-bg-color "#FFD700"', filename: 'canvas-solid-color.png' },
+    {
+      id: 'canvas-none',
+      category: 'Canvas Backgrounds',
+      description: 'Icon only, no surrounding background',
+      command: 'icon-composer preview bundle.icon out.png',
+      filename: 'canvas-none.png',
+    },
+    {
+      id: 'canvas-light',
+      category: 'Canvas Backgrounds',
+      description: 'Light gray background behind icon',
+      command: 'icon-composer preview bundle.icon out.png --canvas-bg light',
+      filename: 'canvas-light.png',
+    },
+    {
+      id: 'canvas-dark',
+      category: 'Canvas Backgrounds',
+      description: 'Dark background behind icon',
+      command: 'icon-composer preview bundle.icon out.png --canvas-bg dark',
+      filename: 'canvas-dark.png',
+    },
+    {
+      id: 'canvas-checkerboard',
+      category: 'Canvas Backgrounds',
+      description: 'White/gray checkerboard (transparency indicator)',
+      command: 'icon-composer preview bundle.icon out.png --canvas-bg checkerboard',
+      filename: 'canvas-checkerboard.png',
+    },
+    {
+      id: 'canvas-homescreen-light',
+      category: 'Canvas Backgrounds',
+      description: 'iOS light homescreen wallpaper',
+      command: 'icon-composer preview bundle.icon out.png --canvas-bg homescreen-light',
+      filename: 'canvas-homescreen-light.png',
+    },
+    {
+      id: 'canvas-homescreen-dark',
+      category: 'Canvas Backgrounds',
+      description: 'iOS dark homescreen wallpaper',
+      command: 'icon-composer preview bundle.icon out.png --canvas-bg homescreen-dark',
+      filename: 'canvas-homescreen-dark.png',
+    },
+    {
+      id: 'canvas-solid-color',
+      category: 'Canvas Backgrounds',
+      description: 'Gold/yellow solid background',
+      command: 'icon-composer preview bundle.icon out.png --canvas-bg-color "#FFD700"',
+      filename: 'canvas-solid-color.png',
+    },
   );
 
   // Category 6: Apple Presets (only if backgrounds exist)
   if (hasApplePresets) {
     cases.push(
-      { id: 'preset-purple-orange', category: 'Apple Presets', description: 'Purple-to-orange gradient wallpaper', command: 'icon-composer preview bundle.icon out.png --apple-preset sine-purple-orange', filename: 'preset-purple-orange.png' },
-      { id: 'preset-gasflame', category: 'Apple Presets', description: 'Warm gasflame gradient', command: 'icon-composer preview bundle.icon out.png --apple-preset sine-gasflame', filename: 'preset-gasflame.png' },
-      { id: 'preset-magenta', category: 'Apple Presets', description: 'Magenta gradient', command: 'icon-composer preview bundle.icon out.png --apple-preset sine-magenta', filename: 'preset-magenta.png' },
-      { id: 'preset-green-yellow', category: 'Apple Presets', description: 'Green-to-yellow gradient', command: 'icon-composer preview bundle.icon out.png --apple-preset sine-green-yellow', filename: 'preset-green-yellow.png' },
-      { id: 'preset-purple-orange-black', category: 'Apple Presets', description: 'Purple-orange with black gradient', command: 'icon-composer preview bundle.icon out.png --apple-preset sine-purple-orange-black', filename: 'preset-purple-orange-black.png' },
-      { id: 'preset-gray', category: 'Apple Presets', description: 'Neutral gray gradient', command: 'icon-composer preview bundle.icon out.png --apple-preset sine-gray', filename: 'preset-gray.png' },
+      {
+        id: 'preset-purple-orange',
+        category: 'Apple Presets',
+        description: 'Purple-to-orange gradient wallpaper',
+        command: 'icon-composer preview bundle.icon out.png --apple-preset sine-purple-orange',
+        filename: 'preset-purple-orange.png',
+      },
+      {
+        id: 'preset-gasflame',
+        category: 'Apple Presets',
+        description: 'Warm gasflame gradient',
+        command: 'icon-composer preview bundle.icon out.png --apple-preset sine-gasflame',
+        filename: 'preset-gasflame.png',
+      },
+      {
+        id: 'preset-magenta',
+        category: 'Apple Presets',
+        description: 'Magenta gradient',
+        command: 'icon-composer preview bundle.icon out.png --apple-preset sine-magenta',
+        filename: 'preset-magenta.png',
+      },
+      {
+        id: 'preset-green-yellow',
+        category: 'Apple Presets',
+        description: 'Green-to-yellow gradient',
+        command: 'icon-composer preview bundle.icon out.png --apple-preset sine-green-yellow',
+        filename: 'preset-green-yellow.png',
+      },
+      {
+        id: 'preset-purple-orange-black',
+        category: 'Apple Presets',
+        description: 'Purple-orange with black gradient',
+        command: 'icon-composer preview bundle.icon out.png --apple-preset sine-purple-orange-black',
+        filename: 'preset-purple-orange-black.png',
+      },
+      {
+        id: 'preset-gray',
+        category: 'Apple Presets',
+        description: 'Neutral gray gradient',
+        command: 'icon-composer preview bundle.icon out.png --apple-preset sine-gray',
+        filename: 'preset-gray.png',
+      },
       // Variations: size, glyph scale, opacity
-      { id: 'preset-small-icon', category: 'Apple Presets', description: 'Small icon (zoom 0.3) on purple-orange', command: 'icon-composer preview bundle.icon out.png --apple-preset sine-purple-orange --zoom 0.3', filename: 'preset-small-icon.png' },
-      { id: 'preset-large-icon', category: 'Apple Presets', description: 'Large icon (zoom 0.85) on purple-orange', command: 'icon-composer preview bundle.icon out.png --apple-preset sine-purple-orange --zoom 0.85', filename: 'preset-large-icon.png' },
-      { id: 'preset-big-glyph', category: 'Apple Presets', description: 'Glyph at scale 0.9 on gasflame', command: 'icon-composer create glyph.png ./out --glyph-scale 0.9', filename: 'preset-big-glyph.png' },
-      { id: 'preset-tiny-glyph', category: 'Apple Presets', description: 'Glyph at scale 0.25 on gasflame', command: 'icon-composer create glyph.png ./out --glyph-scale 0.25', filename: 'preset-tiny-glyph.png' },
-      { id: 'preset-glyph-full', category: 'Apple Presets', description: 'Glyph at scale 1.0 — should fill icon area (clipped by ~27% rounded edges)', command: 'icon-composer create glyph.png ./out --glyph-scale 1.0', filename: 'preset-glyph-full.png' },
-      { id: 'preset-opacity-75', category: 'Apple Presets', description: 'Icon at 75% opacity on magenta', command: 'icon-composer glass bundle.icon --opacity 0.75', filename: 'preset-opacity-75.png' },
-      { id: 'preset-opacity-50', category: 'Apple Presets', description: 'Icon at 50% opacity on magenta', command: 'icon-composer glass bundle.icon --opacity 0.5', filename: 'preset-opacity-50.png' },
-      { id: 'preset-opacity-25', category: 'Apple Presets', description: 'Icon at 25% opacity on magenta (nearly transparent)', command: 'icon-composer glass bundle.icon --opacity 0.25', filename: 'preset-opacity-25.png' },
+      {
+        id: 'preset-small-icon',
+        category: 'Apple Presets',
+        description: 'Small icon (zoom 0.3) on purple-orange',
+        command: 'icon-composer preview bundle.icon out.png --apple-preset sine-purple-orange --zoom 0.3',
+        filename: 'preset-small-icon.png',
+      },
+      {
+        id: 'preset-large-icon',
+        category: 'Apple Presets',
+        description: 'Large icon (zoom 0.85) on purple-orange',
+        command: 'icon-composer preview bundle.icon out.png --apple-preset sine-purple-orange --zoom 0.85',
+        filename: 'preset-large-icon.png',
+      },
+      {
+        id: 'preset-big-glyph',
+        category: 'Apple Presets',
+        description: 'Glyph at scale 0.9 on gasflame',
+        command: 'icon-composer create glyph.png ./out --glyph-scale 0.9',
+        filename: 'preset-big-glyph.png',
+      },
+      {
+        id: 'preset-tiny-glyph',
+        category: 'Apple Presets',
+        description: 'Glyph at scale 0.25 on gasflame',
+        command: 'icon-composer create glyph.png ./out --glyph-scale 0.25',
+        filename: 'preset-tiny-glyph.png',
+      },
+      {
+        id: 'preset-glyph-full',
+        category: 'Apple Presets',
+        description: 'Glyph at scale 1.0 — should fill icon area (clipped by ~27% rounded edges)',
+        command: 'icon-composer create glyph.png ./out --glyph-scale 1.0',
+        filename: 'preset-glyph-full.png',
+      },
+      {
+        id: 'preset-opacity-75',
+        category: 'Apple Presets',
+        description: 'Icon at 75% opacity on magenta',
+        command: 'icon-composer glass bundle.icon --opacity 0.75',
+        filename: 'preset-opacity-75.png',
+      },
+      {
+        id: 'preset-opacity-50',
+        category: 'Apple Presets',
+        description: 'Icon at 50% opacity on magenta',
+        command: 'icon-composer glass bundle.icon --opacity 0.5',
+        filename: 'preset-opacity-50.png',
+      },
+      {
+        id: 'preset-opacity-25',
+        category: 'Apple Presets',
+        description: 'Icon at 25% opacity on magenta (nearly transparent)',
+        command: 'icon-composer glass bundle.icon --opacity 0.25',
+        filename: 'preset-opacity-25.png',
+      },
     );
   }
 
   // Category 7: Zoom Levels
   cases.push(
-    { id: 'zoom-0.3', category: 'Zoom Levels', description: 'Very small icon centered on checkerboard', command: 'icon-composer preview bundle.icon out.png --canvas-bg checkerboard --zoom 0.3', filename: 'zoom-0.3.png' },
-    { id: 'zoom-0.5', category: 'Zoom Levels', description: 'Half-size icon on checkerboard', command: 'icon-composer preview bundle.icon out.png --canvas-bg checkerboard --zoom 0.5', filename: 'zoom-0.5.png' },
-    { id: 'zoom-1.0', category: 'Zoom Levels', description: 'Full-size icon filling checkerboard', command: 'icon-composer preview bundle.icon out.png --canvas-bg checkerboard --zoom 1.0', filename: 'zoom-1.0.png' },
-    { id: 'zoom-1.5', category: 'Zoom Levels', description: 'Icon 1.5x larger than canvas, edges cropped', command: 'icon-composer preview bundle.icon out.png --canvas-bg checkerboard --zoom 1.5', filename: 'zoom-1.5.png' },
-    { id: 'zoom-2.0', category: 'Zoom Levels', description: 'Icon 2x, heavily cropped', command: 'icon-composer preview bundle.icon out.png --canvas-bg checkerboard --zoom 2.0', filename: 'zoom-2.0.png' },
+    {
+      id: 'zoom-0.3',
+      category: 'Zoom Levels',
+      description: 'Very small icon centered on checkerboard',
+      command: 'icon-composer preview bundle.icon out.png --canvas-bg checkerboard --zoom 0.3',
+      filename: 'zoom-0.3.png',
+    },
+    {
+      id: 'zoom-0.5',
+      category: 'Zoom Levels',
+      description: 'Half-size icon on checkerboard',
+      command: 'icon-composer preview bundle.icon out.png --canvas-bg checkerboard --zoom 0.5',
+      filename: 'zoom-0.5.png',
+    },
+    {
+      id: 'zoom-1.0',
+      category: 'Zoom Levels',
+      description: 'Full-size icon filling checkerboard',
+      command: 'icon-composer preview bundle.icon out.png --canvas-bg checkerboard --zoom 1.0',
+      filename: 'zoom-1.0.png',
+    },
+    {
+      id: 'zoom-1.5',
+      category: 'Zoom Levels',
+      description: 'Icon 1.5x larger than canvas, edges cropped',
+      command: 'icon-composer preview bundle.icon out.png --canvas-bg checkerboard --zoom 1.5',
+      filename: 'zoom-1.5.png',
+    },
+    {
+      id: 'zoom-2.0',
+      category: 'Zoom Levels',
+      description: 'Icon 2x, heavily cropped',
+      command: 'icon-composer preview bundle.icon out.png --canvas-bg checkerboard --zoom 2.0',
+      filename: 'zoom-2.0.png',
+    },
   );
 
   // Category 8: Renditions (ictool only)
   if (hasIctool) {
     cases.push(
-      { id: 'rendition-default', category: 'Renditions (ictool)', description: 'Standard Liquid Glass appearance', command: 'icon-composer render bundle.icon out.png --rendition Default', filename: 'rendition-default.png' },
-      { id: 'rendition-dark', category: 'Renditions (ictool)', description: 'Dark mode Liquid Glass', command: 'icon-composer render bundle.icon out.png --rendition Dark', filename: 'rendition-dark.png' },
-      { id: 'rendition-tinted-light', category: 'Renditions (ictool)', description: 'Tinted light appearance', command: 'icon-composer render bundle.icon out.png --rendition TintedLight', filename: 'rendition-tinted-light.png' },
-      { id: 'rendition-tinted-dark', category: 'Renditions (ictool)', description: 'Tinted dark appearance', command: 'icon-composer render bundle.icon out.png --rendition TintedDark', filename: 'rendition-tinted-dark.png' },
-      { id: 'rendition-clear-light', category: 'Renditions (ictool)', description: 'Clear/transparent light', command: 'icon-composer render bundle.icon out.png --rendition ClearLight', filename: 'rendition-clear-light.png' },
-      { id: 'rendition-clear-dark', category: 'Renditions (ictool)', description: 'Clear/transparent dark', command: 'icon-composer render bundle.icon out.png --rendition ClearDark', filename: 'rendition-clear-dark.png' },
+      {
+        id: 'rendition-default',
+        category: 'Renditions (ictool)',
+        description: 'Standard Liquid Glass appearance',
+        command: 'icon-composer render bundle.icon out.png --rendition Default',
+        filename: 'rendition-default.png',
+      },
+      {
+        id: 'rendition-dark',
+        category: 'Renditions (ictool)',
+        description: 'Dark mode Liquid Glass',
+        command: 'icon-composer render bundle.icon out.png --rendition Dark',
+        filename: 'rendition-dark.png',
+      },
+      {
+        id: 'rendition-tinted-light',
+        category: 'Renditions (ictool)',
+        description: 'Tinted light appearance',
+        command: 'icon-composer render bundle.icon out.png --rendition TintedLight',
+        filename: 'rendition-tinted-light.png',
+      },
+      {
+        id: 'rendition-tinted-dark',
+        category: 'Renditions (ictool)',
+        description: 'Tinted dark appearance',
+        command: 'icon-composer render bundle.icon out.png --rendition TintedDark',
+        filename: 'rendition-tinted-dark.png',
+      },
+      {
+        id: 'rendition-clear-light',
+        category: 'Renditions (ictool)',
+        description: 'Clear/transparent light',
+        command: 'icon-composer render bundle.icon out.png --rendition ClearLight',
+        filename: 'rendition-clear-light.png',
+      },
+      {
+        id: 'rendition-clear-dark',
+        category: 'Renditions (ictool)',
+        description: 'Clear/transparent dark',
+        command: 'icon-composer render bundle.icon out.png --rendition ClearDark',
+        filename: 'rendition-clear-dark.png',
+      },
     );
   }
 
   // Category 9: Platforms (ictool only)
   if (hasIctool) {
     cases.push(
-      { id: 'platform-ios', category: 'Platforms (ictool)', description: 'iOS rounded rectangle shape', command: 'icon-composer render bundle.icon out.png --platform iOS', filename: 'platform-ios.png' },
-      { id: 'platform-macos', category: 'Platforms (ictool)', description: 'macOS rounded square shape', command: 'icon-composer render bundle.icon out.png --platform macOS', filename: 'platform-macos.png' },
-      { id: 'platform-watchos', category: 'Platforms (ictool)', description: 'watchOS circular shape', command: 'icon-composer render bundle.icon out.png --platform watchOS', filename: 'platform-watchos.png' },
+      {
+        id: 'platform-ios',
+        category: 'Platforms (ictool)',
+        description: 'iOS rounded rectangle shape',
+        command: 'icon-composer render bundle.icon out.png --platform iOS',
+        filename: 'platform-ios.png',
+      },
+      {
+        id: 'platform-macos',
+        category: 'Platforms (ictool)',
+        description: 'macOS rounded square shape',
+        command: 'icon-composer render bundle.icon out.png --platform macOS',
+        filename: 'platform-macos.png',
+      },
+      {
+        id: 'platform-watchos',
+        category: 'Platforms (ictool)',
+        description: 'watchOS circular shape',
+        command: 'icon-composer render bundle.icon out.png --platform watchOS',
+        filename: 'platform-watchos.png',
+      },
     );
   }
 
   // Category 10: Multi-layer
   cases.push(
-    { id: 'multi-2-layers', category: 'Multi-layer', description: 'Two overlapping glyphs', command: 'icon-composer add-layer bundle.icon star.png --name star --scale 0.4', filename: 'multi-2-layers.png' },
-    { id: 'multi-2-groups', category: 'Multi-layer', description: 'Two independent layers', command: 'icon-composer add-layer bundle.icon star.png --name star --create-group', filename: 'multi-2-groups.png' },
-    { id: 'multi-blend-multiply', category: 'Multi-layer', description: 'Darkened overlap area', command: 'icon-composer add-layer bundle.icon star.png --name star --blend-mode multiply', filename: 'multi-blend-multiply.png' },
-    { id: 'multi-opacity-50', category: 'Multi-layer', description: 'Semi-transparent second layer', command: 'icon-composer add-layer bundle.icon star.png --name star --opacity 0.5', filename: 'multi-opacity-50.png' },
-    { id: 'multi-app-render', category: 'Multi-layer', description: 'Two layers rendered as iOS app icon on purple-orange preset', command: 'icon-composer preview bundle.icon out.png --apple-preset sine-purple-orange', filename: 'multi-app-render.png' },
-    { id: 'watchos-full-glyph', category: 'Platforms (ictool)', description: 'watchOS circular icon with glyph at scale 1.0 filling the circle', command: 'icon-composer render bundle.icon out.png --platform watchOS', filename: 'watchos-full-glyph.png' },
+    {
+      id: 'multi-2-layers',
+      category: 'Multi-layer',
+      description: 'Two overlapping glyphs',
+      command: 'icon-composer add-layer bundle.icon star.png --name star --scale 0.4',
+      filename: 'multi-2-layers.png',
+    },
+    {
+      id: 'multi-2-groups',
+      category: 'Multi-layer',
+      description: 'Two independent layers',
+      command: 'icon-composer add-layer bundle.icon star.png --name star --create-group',
+      filename: 'multi-2-groups.png',
+    },
+    {
+      id: 'multi-blend-multiply',
+      category: 'Multi-layer',
+      description: 'Darkened overlap area',
+      command: 'icon-composer add-layer bundle.icon star.png --name star --blend-mode multiply',
+      filename: 'multi-blend-multiply.png',
+    },
+    {
+      id: 'multi-opacity-50',
+      category: 'Multi-layer',
+      description: 'Semi-transparent second layer',
+      command: 'icon-composer add-layer bundle.icon star.png --name star --opacity 0.5',
+      filename: 'multi-opacity-50.png',
+    },
+    {
+      id: 'multi-app-render',
+      category: 'Multi-layer',
+      description: 'Two layers rendered as iOS app icon on purple-orange preset',
+      command: 'icon-composer preview bundle.icon out.png --apple-preset sine-purple-orange',
+      filename: 'multi-app-render.png',
+    },
+    {
+      id: 'watchos-full-glyph',
+      category: 'Platforms (ictool)',
+      description: 'watchOS circular icon with glyph at scale 1.0 filling the circle',
+      command: 'icon-composer render bundle.icon out.png --platform watchOS',
+      filename: 'watchos-full-glyph.png',
+    },
   );
 
   // Category 11: FX Toggle
   cases.push(
-    { id: 'fx-enabled', category: 'FX Toggle', description: 'Full Liquid Glass look', command: 'icon-composer fx bundle.icon --enable', filename: 'fx-enabled.png' },
-    { id: 'fx-disabled', category: 'FX Toggle', description: 'Flat, no glass effects', command: 'icon-composer fx bundle.icon --disable', filename: 'fx-disabled.png' },
+    {
+      id: 'fx-enabled',
+      category: 'FX Toggle',
+      description: 'Full Liquid Glass look',
+      command: 'icon-composer fx bundle.icon --enable',
+      filename: 'fx-enabled.png',
+    },
+    {
+      id: 'fx-disabled',
+      category: 'FX Toggle',
+      description: 'Flat, no glass effects',
+      command: 'icon-composer fx bundle.icon --disable',
+      filename: 'fx-disabled.png',
+    },
   );
 
   // Category 12: Layer Position
   cases.push(
-    { id: 'position-centered', category: 'Layer Position', description: 'Glyph centered', command: 'icon-composer position bundle.icon --offset-x 0 --offset-y 0', filename: 'position-centered.png' },
-    { id: 'position-offset-right', category: 'Layer Position', description: 'Glyph shifted right', command: 'icon-composer position bundle.icon --offset-x 50', filename: 'position-offset-right.png' },
-    { id: 'position-offset-up', category: 'Layer Position', description: 'Glyph shifted up', command: 'icon-composer position bundle.icon --offset-y -50', filename: 'position-offset-up.png' },
-    { id: 'position-offset-corner', category: 'Layer Position', description: 'Glyph in bottom-right area', command: 'icon-composer position bundle.icon --offset-x 80 --offset-y 80', filename: 'position-offset-corner.png' },
+    {
+      id: 'position-centered',
+      category: 'Layer Position',
+      description: 'Glyph centered',
+      command: 'icon-composer position bundle.icon --offset-x 0 --offset-y 0',
+      filename: 'position-centered.png',
+    },
+    {
+      id: 'position-offset-right',
+      category: 'Layer Position',
+      description: 'Glyph shifted right',
+      command: 'icon-composer position bundle.icon --offset-x 50',
+      filename: 'position-offset-right.png',
+    },
+    {
+      id: 'position-offset-up',
+      category: 'Layer Position',
+      description: 'Glyph shifted up',
+      command: 'icon-composer position bundle.icon --offset-y -50',
+      filename: 'position-offset-up.png',
+    },
+    {
+      id: 'position-offset-corner',
+      category: 'Layer Position',
+      description: 'Glyph in bottom-right area',
+      command: 'icon-composer position bundle.icon --offset-x 80 --offset-y 80',
+      filename: 'position-offset-corner.png',
+    },
   );
 
   return cases;
@@ -337,7 +768,9 @@ export async function runVisualTests(outputDir: string): Promise<void> {
   const total = testCases.length;
   const results: TestResult[] = [];
 
-  console.log(`Running ${total} visual tests (ictool: ${hasIctool ? 'yes' : 'no'}, apple presets: ${hasApplePresets ? 'yes' : 'no'})`);
+  console.log(
+    `Running ${total} visual tests (ictool: ${hasIctool ? 'yes' : 'no'}, apple presets: ${hasApplePresets ? 'yes' : 'no'})`,
+  );
   console.log('');
 
   for (let i = 0; i < testCases.length; i++) {
@@ -363,15 +796,33 @@ export async function runVisualTests(outputDir: string): Promise<void> {
         await renderFlatPreview(bp, outPath, SIZE);
       } else if (tc.id === 'fill-gradient-vertical') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle, { bgColor: '#FF0000' });
-        await setFill({ bundle_path: bp, fill_type: 'gradient', color: '#FF0000', color2: '#0000FF', gradient_angle: 0 });
+        await setFill({
+          bundle_path: bp,
+          fill_type: 'gradient',
+          color: '#FF0000',
+          color2: '#0000FF',
+          gradient_angle: 0,
+        });
         await renderFlatPreview(bp, outPath, SIZE);
       } else if (tc.id === 'fill-gradient-horizontal') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle, { bgColor: '#FF0000' });
-        await setFill({ bundle_path: bp, fill_type: 'gradient', color: '#FF0000', color2: '#0000FF', gradient_angle: 90 });
+        await setFill({
+          bundle_path: bp,
+          fill_type: 'gradient',
+          color: '#FF0000',
+          color2: '#0000FF',
+          gradient_angle: 90,
+        });
         await renderFlatPreview(bp, outPath, SIZE);
       } else if (tc.id === 'fill-gradient-diagonal') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle, { bgColor: '#FF0000' });
-        await setFill({ bundle_path: bp, fill_type: 'gradient', color: '#FF0000', color2: '#0000FF', gradient_angle: 45 });
+        await setFill({
+          bundle_path: bp,
+          fill_type: 'gradient',
+          color: '#FF0000',
+          color2: '#0000FF',
+          gradient_angle: 45,
+        });
         await renderFlatPreview(bp, outPath, SIZE);
       } else if (tc.id === 'fill-automatic') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle, { bgColor: '#0A66C2' });
@@ -382,7 +833,7 @@ export async function runVisualTests(outputDir: string): Promise<void> {
         await setFill({ bundle_path: bp, fill_type: 'none', gradient_angle: 0 });
         await renderFlatPreview(bp, outPath, SIZE);
 
-      // ── Category: Dark Mode ──
+        // ── Category: Dark Mode ──
       } else if (tc.id === 'dark-mode-light') {
         const bp = await createBaseBundle(tmpDir, tc.id, blueCircle, { bgColor: '#FFFFFF', darkBgColor: '#000000' });
         await renderFlatPreview(bp, outPath, SIZE);
@@ -396,7 +847,7 @@ export async function runVisualTests(outputDir: string): Promise<void> {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle, { bgColor: '#0A66C2', darkBgColor: '#001F3F' });
         await renderFlatPreview(bp, outPath, SIZE, 'dark');
 
-      // ── Category: Glass Effects (ictool required for visible effects) ──
+        // ── Category: Glass Effects (ictool required for visible effects) ──
       } else if (tc.id === 'glass-specular-on') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle, { specular: true });
         await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 1.0 });
@@ -406,11 +857,23 @@ export async function runVisualTests(outputDir: string): Promise<void> {
       } else if (tc.id === 'glass-blur-0.3') {
         // Gradient bg so blur-material (which blurs behind glass) has something to blur
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle, { blurMaterial: 0.3, bgColor: '#FF0000' });
-        await setFill({ bundle_path: bp, fill_type: 'gradient', color: '#FF0000', color2: '#0000FF', gradient_angle: 45 });
+        await setFill({
+          bundle_path: bp,
+          fill_type: 'gradient',
+          color: '#FF0000',
+          color2: '#0000FF',
+          gradient_angle: 45,
+        });
         await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 1.0 });
       } else if (tc.id === 'glass-blur-0.8') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle, { blurMaterial: 0.8, bgColor: '#FF0000' });
-        await setFill({ bundle_path: bp, fill_type: 'gradient', color: '#FF0000', color2: '#0000FF', gradient_angle: 45 });
+        await setFill({
+          bundle_path: bp,
+          fill_type: 'gradient',
+          color: '#FF0000',
+          color2: '#0000FF',
+          gradient_angle: 45,
+        });
         await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 1.0 });
       } else if (tc.id === 'glass-shadow-layer-color') {
         // Red glyph so layer-color shadow is visibly red
@@ -424,78 +887,186 @@ export async function runVisualTests(outputDir: string): Promise<void> {
         const bp = await createBaseBundle(tmpDir, tc.id, redSquare, { shadowKind: 'none' });
         await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 1.0 });
       } else if (tc.id === 'glass-translucency') {
-        const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle, { translucencyEnabled: true, translucencyValue: 1.0 });
+        const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle, {
+          translucencyEnabled: true,
+          translucencyValue: 1.0,
+        });
         await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 1.0 });
 
-      // ── Category: Glyph Scale ──
+        // ── Category: Glyph Scale ──
       } else if (tc.id.startsWith('scale-')) {
         const scale = parseFloat(tc.id.replace('scale-', ''));
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle, { glyphScale: scale });
         if (tc.id.endsWith('-app')) {
-          await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 0.6, canvas_bg: 'dark' });
+          await exportPreview({
+            bundle_path: bp,
+            output_path: outPath,
+            size: SIZE,
+            flat: false,
+            zoom: 0.6,
+            canvas_bg: 'dark',
+          });
         } else if (tc.id.endsWith('-flat')) {
           await renderFlatPreview(bp, outPath, SIZE);
         } else {
           await renderFlatPreview(bp, outPath, SIZE);
         }
 
-      // ── Category: Canvas Backgrounds ──
+        // ── Category: Canvas Backgrounds ──
       } else if (tc.id === 'canvas-none') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle);
         await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 0.6 });
       } else if (tc.id === 'canvas-light') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle);
-        await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 0.6, canvas_bg: 'light' });
+        await exportPreview({
+          bundle_path: bp,
+          output_path: outPath,
+          size: SIZE,
+          flat: false,
+          zoom: 0.6,
+          canvas_bg: 'light',
+        });
       } else if (tc.id === 'canvas-dark') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle);
-        await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 0.6, canvas_bg: 'dark' });
+        await exportPreview({
+          bundle_path: bp,
+          output_path: outPath,
+          size: SIZE,
+          flat: false,
+          zoom: 0.6,
+          canvas_bg: 'dark',
+        });
       } else if (tc.id === 'canvas-checkerboard') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle);
-        await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 0.6, canvas_bg: 'checkerboard' });
+        await exportPreview({
+          bundle_path: bp,
+          output_path: outPath,
+          size: SIZE,
+          flat: false,
+          zoom: 0.6,
+          canvas_bg: 'checkerboard',
+        });
       } else if (tc.id === 'canvas-homescreen-light') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle);
-        await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 0.6, canvas_bg: 'homescreen-light' });
+        await exportPreview({
+          bundle_path: bp,
+          output_path: outPath,
+          size: SIZE,
+          flat: false,
+          zoom: 0.6,
+          canvas_bg: 'homescreen-light',
+        });
       } else if (tc.id === 'canvas-homescreen-dark') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle);
-        await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 0.6, canvas_bg: 'homescreen-dark' });
+        await exportPreview({
+          bundle_path: bp,
+          output_path: outPath,
+          size: SIZE,
+          flat: false,
+          zoom: 0.6,
+          canvas_bg: 'homescreen-dark',
+        });
       } else if (tc.id === 'canvas-solid-color') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle);
-        await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 0.6, canvas_bg_color: '#FFD700' });
+        await exportPreview({
+          bundle_path: bp,
+          output_path: outPath,
+          size: SIZE,
+          flat: false,
+          zoom: 0.6,
+          canvas_bg_color: '#FFD700',
+        });
 
-      // ── Category: Apple Presets (variations first, then generic) ──
+        // ── Category: Apple Presets (variations first, then generic) ──
       } else if (tc.id === 'preset-small-icon') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle);
-        await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 0.3, apple_preset: 'sine-purple-orange' });
+        await exportPreview({
+          bundle_path: bp,
+          output_path: outPath,
+          size: SIZE,
+          flat: false,
+          zoom: 0.3,
+          apple_preset: 'sine-purple-orange',
+        });
       } else if (tc.id === 'preset-large-icon') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle);
-        await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 0.85, apple_preset: 'sine-purple-orange' });
+        await exportPreview({
+          bundle_path: bp,
+          output_path: outPath,
+          size: SIZE,
+          flat: false,
+          zoom: 0.85,
+          apple_preset: 'sine-purple-orange',
+        });
       } else if (tc.id === 'preset-big-glyph') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle, { glyphScale: 0.9 });
-        await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 0.6, apple_preset: 'sine-gasflame' });
+        await exportPreview({
+          bundle_path: bp,
+          output_path: outPath,
+          size: SIZE,
+          flat: false,
+          zoom: 0.6,
+          apple_preset: 'sine-gasflame',
+        });
       } else if (tc.id === 'preset-tiny-glyph') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle, { glyphScale: 0.25 });
-        await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 0.6, apple_preset: 'sine-gasflame' });
+        await exportPreview({
+          bundle_path: bp,
+          output_path: outPath,
+          size: SIZE,
+          flat: false,
+          zoom: 0.6,
+          apple_preset: 'sine-gasflame',
+        });
       } else if (tc.id === 'preset-glyph-full') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle, { glyphScale: 1.0 });
-        await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 0.6, apple_preset: 'sine-purple-orange' });
+        await exportPreview({
+          bundle_path: bp,
+          output_path: outPath,
+          size: SIZE,
+          flat: false,
+          zoom: 0.6,
+          apple_preset: 'sine-purple-orange',
+        });
       } else if (tc.id === 'preset-opacity-75') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle);
         const { manifest } = await readIconBundle(bp);
         manifest.groups[0].opacity = 0.75;
         await saveManifest(bp, manifest);
-        await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 0.6, apple_preset: 'sine-magenta' });
+        await exportPreview({
+          bundle_path: bp,
+          output_path: outPath,
+          size: SIZE,
+          flat: false,
+          zoom: 0.6,
+          apple_preset: 'sine-magenta',
+        });
       } else if (tc.id === 'preset-opacity-50') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle);
         const { manifest } = await readIconBundle(bp);
         manifest.groups[0].opacity = 0.5;
         await saveManifest(bp, manifest);
-        await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 0.6, apple_preset: 'sine-magenta' });
+        await exportPreview({
+          bundle_path: bp,
+          output_path: outPath,
+          size: SIZE,
+          flat: false,
+          zoom: 0.6,
+          apple_preset: 'sine-magenta',
+        });
       } else if (tc.id === 'preset-opacity-25') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle);
         const { manifest } = await readIconBundle(bp);
         manifest.groups[0].opacity = 0.25;
         await saveManifest(bp, manifest);
-        await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 0.6, apple_preset: 'sine-magenta' });
+        await exportPreview({
+          bundle_path: bp,
+          output_path: outPath,
+          size: SIZE,
+          flat: false,
+          zoom: 0.6,
+          apple_preset: 'sine-magenta',
+        });
       } else if (tc.id.startsWith('preset-')) {
         const presetMap: Record<string, ApplePresetName> = {
           'preset-purple-orange': 'sine-purple-orange',
@@ -508,16 +1079,30 @@ export async function runVisualTests(outputDir: string): Promise<void> {
         const presetName = presetMap[tc.id];
         if (presetName) {
           const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle);
-          await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 0.6, apple_preset: presetName });
+          await exportPreview({
+            bundle_path: bp,
+            output_path: outPath,
+            size: SIZE,
+            flat: false,
+            zoom: 0.6,
+            apple_preset: presetName,
+          });
         }
 
-      // ── Category: Zoom Levels ──
+        // ── Category: Zoom Levels ──
       } else if (tc.id.startsWith('zoom-')) {
         const zoom = parseFloat(tc.id.replace('zoom-', ''));
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle);
-        await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom, canvas_bg: 'checkerboard' });
+        await exportPreview({
+          bundle_path: bp,
+          output_path: outPath,
+          size: SIZE,
+          flat: false,
+          zoom,
+          canvas_bg: 'checkerboard',
+        });
 
-      // ── Category: Renditions (ictool) ──
+        // ── Category: Renditions (ictool) ──
       } else if (tc.id.startsWith('rendition-')) {
         const renditionMap: Record<string, string> = {
           'rendition-default': 'Default',
@@ -537,7 +1122,7 @@ export async function runVisualTests(outputDir: string): Promise<void> {
           height: SIZE,
         });
 
-      // ── Category: Platforms (ictool) ──
+        // ── Category: Platforms (ictool) ──
       } else if (tc.id.startsWith('platform-')) {
         const platformMap: Record<string, string> = {
           'platform-ios': 'iOS',
@@ -554,7 +1139,7 @@ export async function runVisualTests(outputDir: string): Promise<void> {
           height: SIZE,
         });
 
-      // ── Category: Multi-layer ──
+        // ── Category: Multi-layer ──
       } else if (tc.id === 'multi-2-layers') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle, { glyphScale: 0.65 });
         // Add second layer in same group
@@ -569,7 +1154,11 @@ export async function runVisualTests(outputDir: string): Promise<void> {
         const { manifest, assets } = await readIconBundle(bp);
         assets.set('redsquare.png', redSquare);
         await fs.writeFile(path.join(bp, 'Assets', 'redsquare.png'), redSquare);
-        const group2 = addGroup(manifest, { name: 'Background2', specular: true, shadow: { kind: 'layer-color', opacity: 0.5 } });
+        const group2 = addGroup(manifest, {
+          name: 'Background2',
+          specular: true,
+          shadow: { kind: 'layer-color', opacity: 0.5 },
+        });
         addLayer(group2, { imageName: 'redsquare.png', name: 'square', scale: 0.5, glass: true });
         await saveManifest(bp, manifest);
         await renderFlatPreview(bp, outPath, SIZE);
@@ -577,17 +1166,28 @@ export async function runVisualTests(outputDir: string): Promise<void> {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle, { glyphScale: 0.65 });
         const { manifest } = await readIconBundle(bp);
         await fs.writeFile(path.join(bp, 'Assets', 'redsquare.png'), redSquare);
-        addLayer(manifest.groups[0], { imageName: 'redsquare.png', name: 'square', scale: 0.5, glass: true, blendMode: 'multiply' as BlendMode });
+        addLayer(manifest.groups[0], {
+          imageName: 'redsquare.png',
+          name: 'square',
+          scale: 0.5,
+          glass: true,
+          blendMode: 'multiply' as BlendMode,
+        });
         await saveManifest(bp, manifest);
         await renderFlatPreview(bp, outPath, SIZE);
       } else if (tc.id === 'multi-opacity-50') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle, { glyphScale: 0.65 });
         const { manifest } = await readIconBundle(bp);
         await fs.writeFile(path.join(bp, 'Assets', 'redsquare.png'), redSquare);
-        addLayer(manifest.groups[0], { imageName: 'redsquare.png', name: 'square', scale: 0.5, glass: true, opacity: 0.5 });
+        addLayer(manifest.groups[0], {
+          imageName: 'redsquare.png',
+          name: 'square',
+          scale: 0.5,
+          glass: true,
+          opacity: 0.5,
+        });
         await saveManifest(bp, manifest);
         await renderFlatPreview(bp, outPath, SIZE);
-
       } else if (tc.id === 'multi-app-render') {
         // Two layers: red square behind, white circle in front — both visible
         const bp = await createBaseBundle(tmpDir, tc.id, redSquare, { glyphScale: 0.8 });
@@ -596,20 +1196,40 @@ export async function runVisualTests(outputDir: string): Promise<void> {
         manifest.groups[0].layers[0].opacity = 0.5;
         addLayer(manifest.groups[0], { imageName: 'whitecircle.png', name: 'circle', scale: 0.4, glass: true });
         await saveManifest(bp, manifest);
-        await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 0.6, apple_preset: 'sine-purple-orange' });
+        await exportPreview({
+          bundle_path: bp,
+          output_path: outPath,
+          size: SIZE,
+          flat: false,
+          zoom: 0.6,
+          apple_preset: 'sine-purple-orange',
+        });
       } else if (tc.id === 'watchos-full-glyph') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle, { glyphScale: 1.0 });
-        await renderLiquidGlass({ bundle_path: bp, output_path: outPath, platform: 'watchOS', rendition: 'Default', width: SIZE, height: SIZE, scale: 1, zoom: 1.0 });
+        await renderLiquidGlass({
+          bundle_path: bp,
+          output_path: outPath,
+          platform: 'watchOS',
+          rendition: 'Default',
+          width: SIZE,
+          height: SIZE,
+          scale: 1,
+          zoom: 1.0,
+        });
 
-      // ── Category: FX Toggle ──
+        // ── Category: FX Toggle ──
       } else if (tc.id === 'fx-enabled') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle, { specular: true, shadowKind: 'layer-color' });
         await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 1.0 });
       } else if (tc.id === 'fx-disabled') {
-        const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle, { specular: false, shadowKind: 'none', shadowOpacity: 0 });
+        const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle, {
+          specular: false,
+          shadowKind: 'none',
+          shadowOpacity: 0,
+        });
         await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 1.0 });
 
-      // ── Category: Layer Position ──
+        // ── Category: Layer Position ──
       } else if (tc.id === 'position-centered') {
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle);
         await renderFlatPreview(bp, outPath, SIZE);
@@ -671,12 +1291,14 @@ function generateGalleryHtml(results: TestResult[]): string {
   const total = results.length;
   const generated = results.filter((r) => r.success).length;
 
-  const cardsHtml = categoryNames.map((cat) => {
-    const items = categories.get(cat)!;
-    const cards = items.map((r) => {
-      const imgSrc = r.success ? `./${r.filename}` : '';
-      const errorHtml = r.error ? `<div class="error">${escapeHtml(r.error)}</div>` : '';
-      return `
+  const cardsHtml = categoryNames
+    .map((cat) => {
+      const items = categories.get(cat)!;
+      const cards = items
+        .map((r) => {
+          const imgSrc = r.success ? `./${r.filename}` : '';
+          const errorHtml = r.error ? `<div class="error">${escapeHtml(r.error)}</div>` : '';
+          return `
         <div class="card" data-id="${escapeHtml(r.id)}" data-category="${escapeHtml(r.category)}" data-generated="${r.success}">
           <div class="img-wrap">
             ${r.success ? `<img src="${imgSrc}" alt="${escapeHtml(r.id)}" loading="lazy" />` : '<div class="no-image">FAILED</div>'}
@@ -693,14 +1315,16 @@ function generateGalleryHtml(results: TestResult[]): string {
             <button class="btn-clear" onclick="setVerdict('${escapeHtml(r.id)}', null)">Clear</button>
           </div>
         </div>`;
-    }).join('\n');
+        })
+        .join('\n');
 
-    return `
+      return `
       <div class="category-section" data-category="${escapeHtml(cat)}">
         <h2>${escapeHtml(cat)} <span class="cat-count">(${items.length})</span></h2>
         <div class="grid">${cards}</div>
       </div>`;
-  }).join('\n');
+    })
+    .join('\n');
 
   return `<!DOCTYPE html>
 <html lang="en">

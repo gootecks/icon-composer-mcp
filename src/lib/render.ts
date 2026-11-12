@@ -24,7 +24,9 @@ export async function generateCheckerboard(size: number, cellSize: number = 32):
     }
   }
 
-  return sharp(data, { raw: { width: size, height: size, channels } }).png().toBuffer();
+  return sharp(data, { raw: { width: size, height: size, channels } })
+    .png()
+    .toBuffer();
 }
 
 // Apple Icon Composer preset background names
@@ -82,7 +84,9 @@ export async function resolveCanvasBackground(bg: CanvasBackground, size: number
       const b = parseInt(hex.slice(4, 6), 16);
       return sharp({
         create: { width: size, height: size, channels: 4, background: { r, g, b, alpha: 255 } },
-      }).png().toBuffer();
+      })
+        .png()
+        .toBuffer();
     }
 
     case 'checkerboard':
@@ -95,7 +99,10 @@ export async function resolveCanvasBackground(bg: CanvasBackground, size: number
 
     case 'apple-preset': {
       const bgDir = getBackgroundsDir();
-      if (!bgDir) throw new Error('Apple preset backgrounds require Icon Composer.app. Install: brew install --cask icon-composer');
+      if (!bgDir)
+        throw new Error(
+          'Apple preset backgrounds require Icon Composer.app. Install: brew install --cask icon-composer',
+        );
       const filename = APPLE_PRESET_FILES[bg.name];
       const bgPath = path.join(bgDir, filename);
       const imgBuf = await fs.readFile(bgPath);
@@ -107,11 +114,15 @@ export async function resolveCanvasBackground(bg: CanvasBackground, size: number
         case 'light':
           return sharp({
             create: { width: size, height: size, channels: 4, background: { r: 242, g: 242, b: 247, alpha: 255 } },
-          }).png().toBuffer();
+          })
+            .png()
+            .toBuffer();
         case 'dark':
           return sharp({
             create: { width: size, height: size, channels: 4, background: { r: 28, g: 28, b: 30, alpha: 255 } },
-          }).png().toBuffer();
+          })
+            .png()
+            .toBuffer();
         case 'checkerboard':
           return generateCheckerboard(size, 32);
         case 'homescreen-light': {
@@ -125,10 +136,15 @@ export async function resolveCanvasBackground(bg: CanvasBackground, size: number
             const b = Math.round(235 + t * 15);
             for (let x = 0; x < size; x++) {
               const idx = (y * size + x) * channels;
-              data[idx] = r; data[idx + 1] = g; data[idx + 2] = b; data[idx + 3] = 255;
+              data[idx] = r;
+              data[idx + 1] = g;
+              data[idx + 2] = b;
+              data[idx + 3] = 255;
             }
           }
-          return sharp(data, { raw: { width: size, height: size, channels } }).png().toBuffer();
+          return sharp(data, { raw: { width: size, height: size, channels } })
+            .png()
+            .toBuffer();
         }
         case 'homescreen-dark': {
           // iOS-style dark gradient wallpaper
@@ -141,10 +157,15 @@ export async function resolveCanvasBackground(bg: CanvasBackground, size: number
             const b = Math.round(25 + t * 20);
             for (let x = 0; x < size; x++) {
               const idx = (y * size + x) * channels;
-              data[idx] = r; data[idx + 1] = g; data[idx + 2] = b; data[idx + 3] = 255;
+              data[idx] = r;
+              data[idx + 1] = g;
+              data[idx + 2] = b;
+              data[idx + 3] = 255;
             }
           }
-          return sharp(data, { raw: { width: size, height: size, channels } }).png().toBuffer();
+          return sharp(data, { raw: { width: size, height: size, channels } })
+            .png()
+            .toBuffer();
         }
         default:
           return null;
@@ -153,23 +174,13 @@ export async function resolveCanvasBackground(bg: CanvasBackground, size: number
   }
 }
 
-// Get the native size of an apple preset background image
-async function getApplePresetNativeSize(name: ApplePresetName): Promise<number> {
-  const bgDir = getBackgroundsDir();
-  if (!bgDir) return 8192;
-  const filename = APPLE_PRESET_FILES[name];
-  const bgPath = path.join(bgDir, filename);
-  const metadata = await sharp(bgPath).metadata();
-  return metadata.width ?? 8192;
-}
-
 // Composite an icon image on top of a canvas background
 // For apple presets, preserves the native ratio between icon and background
 export async function compositeOnBackground(
   iconBuffer: Buffer,
   canvasBg: CanvasBackground,
   canvasSize: number,
-  iconSize?: number
+  iconSize?: number,
 ): Promise<Buffer> {
   // For apple presets, handle separately to avoid decoding the 8192 JPEG twice.
   if (canvasBg.type === 'apple-preset') {
@@ -186,20 +197,18 @@ export async function compositeOnBackground(
     // zoom=1.0 (default) → visible icon is ~50% of output
     // zoom=0.5 → zoomed out, visible icon is ~25%
     // zoom<0.25 → full background visible
-    const { width: iconW } = await sharp(iconBuffer).metadata();
-    const nativeIconSize = iconW ?? 1024;
-    const zoom = iconSize ? (iconSize / canvasSize) : 1.0;
 
     // Match the non-preset behavior: icon is (zoom * 100%) of the output canvas.
     // Crop center of the 8192 bg to show a zoomed-in portion, then resize to canvas.
     const bgDir = getBackgroundsDir();
-    if (!bgDir) throw new Error('Apple preset backgrounds require Icon Composer.app. Install: brew install --cask icon-composer');
+    if (!bgDir)
+      throw new Error('Apple preset backgrounds require Icon Composer.app. Install: brew install --cask icon-composer');
     const bgPath = path.join(bgDir, APPLE_PRESET_FILES[canvasBg.name]);
     const bgRaw = await fs.readFile(bgPath);
     const bgMeta = await sharp(bgRaw).metadata();
     const bgNative = bgMeta.width ?? 8192;
     // Crop center ~25% of the wallpaper so the pattern looks natural at icon scale
-    const cropRegion = Math.round(bgNative * 0.20);
+    const cropRegion = Math.round(bgNative * 0.2);
     const cropOffset = Math.round((bgNative - cropRegion) / 2);
     const bgResized = await sharp(bgRaw)
       .extract({ left: cropOffset, top: cropOffset, width: cropRegion, height: cropRegion })
@@ -272,12 +281,12 @@ export async function renderPreview(
   manifest: IconManifest,
   assets: Map<string, Buffer>,
   size: number = 1024,
-  appearance?: 'dark' | 'tinted'
+  appearance?: 'dark' | 'tinted',
 ): Promise<Buffer> {
   const background = await resolveFlatBackground(manifest, assets, size, appearance);
   const overlays: sharp.OverlayOptions[] = [];
   if ('image' in background) overlays.push({ input: background.image, left: 0, top: 0 });
-  overlays.push(...await buildLayerOverlays(manifest, assets, size, appearance));
+  overlays.push(...(await buildLayerOverlays(manifest, assets, size, appearance)));
 
   const canvas = sharp({
     create: {

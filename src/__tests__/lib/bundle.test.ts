@@ -32,9 +32,7 @@ function makeComplexManifest(): IconManifest {
             fill: { solid: 'srgb:1,0,0,1' },
           },
         ],
-        'specular-specializations': [
-          { appearance: 'dark', value: false },
-        ],
+        'specular-specializations': [{ appearance: 'dark', value: false }],
       },
       {
         name: 'GroupB',
@@ -50,9 +48,7 @@ function makeComplexManifest(): IconManifest {
     ],
     'supported-platforms': { squares: ['iOS', 'macOS'] },
     fill: { solid: 'srgb:0.063,0.400,0.761,1' },
-    'fill-specializations': [
-      { appearance: 'dark', value: { solid: 'srgb:0,0.2,0.5,1' } },
-    ],
+    'fill-specializations': [{ appearance: 'dark', value: { solid: 'srgb:0,0.2,0.5,1' } }],
     'color-space-for-untagged-svg-colors': 'srgb',
   };
 }
@@ -89,10 +85,7 @@ test('R-2: no Assets dir — assets Map is empty', async () => {
   const manifest = makeMinimalManifest();
   const bundlePath = path.join(tmpDir, 'NoAssets.icon');
   await fs.mkdir(bundlePath, { recursive: true });
-  await fs.writeFile(
-    path.join(bundlePath, 'icon.json'),
-    JSON.stringify(manifest, null, 2)
-  );
+  await fs.writeFile(path.join(bundlePath, 'icon.json'), JSON.stringify(manifest, null, 2));
 
   const result = await readIconBundle(bundlePath);
   expect(result.assets.size).toBe(0);
@@ -251,7 +244,7 @@ test('W-5: icon.json uses 2-space indentation', async () => {
   expect(raw).toBe(JSON.stringify(manifest, null, 2));
   // Spot-check: first real indented line uses exactly 2 spaces
   const lines = raw.split('\n');
-  const indentedLine = lines.find(l => l.startsWith('  ') && !l.startsWith('   '));
+  const indentedLine = lines.find((l) => l.startsWith('  ') && !l.startsWith('   '));
   expect(indentedLine).toBeDefined();
 });
 
@@ -260,18 +253,14 @@ test('W-6: rejects asset filename with path traversal', async () => {
   const manifest = makeMinimalManifest();
   const assets = new Map<string, Buffer>([['../evil.png', TEST_PNG]]);
 
-  await expect(writeIconBundle(tmpDir, 'Evil', manifest, assets)).rejects.toThrow(
-    'Unsafe asset filename'
-  );
+  await expect(writeIconBundle(tmpDir, 'Evil', manifest, assets)).rejects.toThrow('Unsafe asset filename');
 });
 
 test('W-7: rejects asset filename with subdirectory', async () => {
   const manifest = makeMinimalManifest();
   const assets = new Map<string, Buffer>([['sub/dir.png', TEST_PNG]]);
 
-  await expect(writeIconBundle(tmpDir, 'SubDir', manifest, assets)).rejects.toThrow(
-    'Unsafe asset filename'
-  );
+  await expect(writeIconBundle(tmpDir, 'SubDir', manifest, assets)).rejects.toThrow('Unsafe asset filename');
 });
 
 // ---------------------------------------------------------------------------
@@ -354,9 +343,7 @@ test('S-5: read-mutate-save loop — 3 iterations toggle specular, final state i
     const currentSpecular = current.groups[0]?.specular ?? false;
     const updated: IconManifest = {
       ...current,
-      groups: current.groups.map((g, idx) =>
-        idx === 0 ? { ...g, specular: !currentSpecular } : g
-      ),
+      groups: current.groups.map((g, idx) => (idx === 0 ? { ...g, specular: !currentSpecular } : g)),
     };
     await saveManifest(bundlePath, updated);
   }

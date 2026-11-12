@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { TEST_PNG, TEST_SVG } from './fixtures';
-import type { IconManifest, FillValue } from '../../types';
+import type { IconManifest } from '../../types';
 
 // Create a unique temp directory for a test
 export async function makeTempDir(prefix: string = 'ic-test-'): Promise<string> {
@@ -73,7 +73,7 @@ export async function createFixtureBundle(
     blurMaterial?: number | null;
     translucency?: { enabled: boolean; value: number };
     glyphScale?: number;
-  } = {}
+  } = {},
 ): Promise<string> {
   const { createManifest, addGroup, addLayer, writeIconBundle } = await import('../../icon-builder');
 

@@ -1,11 +1,62 @@
 amends "package://github.com/jdx/hk/releases/download/v2.12.0/hk@2.12.0#/Config.pkl"
 import "package://github.com/jdx/hk/releases/download/v2.12.0/hk@2.12.0#/Builtins.pkl"
-// Using a coding agent? See https://hk.jdx.dev/agents
 
-local linters = new Mapping {
+exclude = List(
+    ".omp/**",
+    ".agents/**",
+    "dist/**",
+    "bin/**",
+    "gallery/**",
+    "docs/**",
+    "fnox.local.toml"
+)
+
+steps {
     ["actionlint"] = Builtins.actionlint
-    ["prettier"] = Builtins.prettier
+    ["oxfmt"] = Builtins.oxfmt
+    ["oxlint"] = Builtins.ox_lint
+    ["rumdl"] {
+        glob = "**/*.md"
+        depends = "oxfmt"
+        check = "rumdl check {{files}}"
+        fix = "hooks/rumdl-fix.sh {{files}}"
+    }
     ["zizmor"] = Builtins.zizmor
 }
 
-steps = linters
+hooks {
+    ["check"] {
+        fix = false
+        stage = false
+        stash = "none"
+    }
+    ["fix"] {
+        fix = true
+        stage = false
+        stash = "none"
+    }
+    ["pre-commit"] {
+        fix = true
+        stage = true
+        stash = "git"
+    }
+    ["commit-msg"] {
+        steps {
+            ["conventional-commit"] = Builtins.check_conventional_commit
+        }
+    }
+    ["prepare-commit-msg"] {
+        steps {
+            ["czg"] {
+                interactive = true
+                check = #"""
+                    [ -z "{{source}}" ] || exit 0
+                    [ -z "${CI:-}" ] && [ -z "${HK_AGENT:-}" ] || exit 0
+                    ( : < /dev/tty ) 2>/dev/null || exit 0
+                    exec < /dev/tty
+                    czg --hook || true
+                    """#
+            }
+        }
+    }
+}

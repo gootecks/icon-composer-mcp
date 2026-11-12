@@ -4,8 +4,12 @@
  * Resolves fill colors from <style> class definitions or inline attributes.
  */
 export function splitSvgLayers(svgContent: string): { name: string; svg: string; color: string }[] {
-  const rootTag = svgContent.match(/<svg(?=[\s>\/])[^>]*>/)?.[0] ?? '';
-  const rootAttr = (name: string) => rootTag.match(new RegExp(`\\s${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`))?.slice(1).find((v) => v !== undefined);
+  const rootTag = svgContent.match(/<svg(?=[\s>/])[^>]*>/)?.[0] ?? '';
+  const rootAttr = (name: string) =>
+    rootTag
+      .match(new RegExp(`\\s${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`))
+      ?.slice(1)
+      .find((v) => v !== undefined);
 
   const viewBoxAttr = rootAttr('viewBox');
   const viewBox = viewBoxAttr ?? '0 0 400 400';

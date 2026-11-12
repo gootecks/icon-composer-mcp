@@ -13,14 +13,8 @@ import {
   responseText,
   isErrorResult,
 } from '../helpers/test-helpers';
-import {
-  createIcon,
-  addLayerToBundle,
-  removeFromBundle,
-  moveLayer,
-  inspectBundle,
-} from '../../lib/ops-bundle';
-import type { CreateIconParams, AddLayerParams, RemoveParams } from '../../lib/ops-bundle';
+import { createIcon, addLayerToBundle, removeFromBundle, moveLayer, inspectBundle } from '../../lib/ops-bundle';
+import type { CreateIconParams, AddLayerParams } from '../../lib/ops-bundle';
 
 let tmpDir: string;
 
@@ -95,10 +89,12 @@ describe('createIcon', () => {
 
   test('dark mode — creates fill specializations', async () => {
     const pngPath = await writeTempPng(tmpDir);
-    const result = await createIcon(defaultCreateParams({
-      foreground_path: pngPath,
-      dark_bg_color: '#1A1A2E',
-    }));
+    const result = await createIcon(
+      defaultCreateParams({
+        foreground_path: pngPath,
+        dark_bg_color: '#1A1A2E',
+      }),
+    );
 
     expect(isErrorResult(result)).toBe(false);
 
@@ -124,9 +120,11 @@ describe('createIcon', () => {
   });
 
   test('missing file — returns error result', async () => {
-    const result = await createIcon(defaultCreateParams({
-      foreground_path: path.join(tmpDir, 'nonexistent.png'),
-    }));
+    const result = await createIcon(
+      defaultCreateParams({
+        foreground_path: path.join(tmpDir, 'nonexistent.png'),
+      }),
+    );
 
     expect(isErrorResult(result)).toBe(true);
     expect(responseText(result)).toContain('Error:');
@@ -142,12 +140,14 @@ describe('addLayerToBundle', () => {
     const bundlePath = await createFixtureBundle(tmpDir, 'AddTest');
     const pngPath = await writeTempPng(tmpDir, 'overlay.png');
 
-    const result = await addLayerToBundle(defaultAddLayerParams({
-      bundle_path: bundlePath,
-      image_path: pngPath,
-      layer_name: 'overlay',
-      group_index: 0,
-    }));
+    const result = await addLayerToBundle(
+      defaultAddLayerParams({
+        bundle_path: bundlePath,
+        image_path: pngPath,
+        layer_name: 'overlay',
+        group_index: 0,
+      }),
+    );
 
     expect(isErrorResult(result)).toBe(false);
     expect(responseText(result)).toContain('Added layer "overlay"');
@@ -163,12 +163,14 @@ describe('addLayerToBundle', () => {
     const bundlePath = await createFixtureBundle(tmpDir, 'NewGroup');
     const pngPath = await writeTempPng(tmpDir, 'bg.png');
 
-    const result = await addLayerToBundle(defaultAddLayerParams({
-      bundle_path: bundlePath,
-      image_path: pngPath,
-      layer_name: 'background',
-      create_group: true,
-    }));
+    const result = await addLayerToBundle(
+      defaultAddLayerParams({
+        bundle_path: bundlePath,
+        image_path: pngPath,
+        layer_name: 'background',
+        create_group: true,
+      }),
+    );
 
     expect(isErrorResult(result)).toBe(false);
 
@@ -182,12 +184,14 @@ describe('addLayerToBundle', () => {
     const bundlePath = await createFixtureBundle(tmpDir, 'Traversal');
     const pngPath = await writeTempPng(tmpDir, 'evil.png');
 
-    const result = await addLayerToBundle(defaultAddLayerParams({
-      bundle_path: bundlePath,
-      image_path: pngPath,
-      layer_name: '../../etc/passwd',
-      group_index: 0,
-    }));
+    const result = await addLayerToBundle(
+      defaultAddLayerParams({
+        bundle_path: bundlePath,
+        image_path: pngPath,
+        layer_name: '../../etc/passwd',
+        group_index: 0,
+      }),
+    );
 
     expect(isErrorResult(result)).toBe(false);
 
@@ -204,12 +208,14 @@ describe('addLayerToBundle', () => {
     const bundlePath = await createFixtureBundle(tmpDir, 'SpecialChars');
     const pngPath = await writeTempPng(tmpDir, 'icon.png');
 
-    const result = await addLayerToBundle(defaultAddLayerParams({
-      bundle_path: bundlePath,
-      image_path: pngPath,
-      layer_name: 'my icon@2x',
-      group_index: 0,
-    }));
+    const result = await addLayerToBundle(
+      defaultAddLayerParams({
+        bundle_path: bundlePath,
+        image_path: pngPath,
+        layer_name: 'my icon@2x',
+        group_index: 0,
+      }),
+    );
 
     expect(isErrorResult(result)).toBe(false);
     expect(await assetExists(bundlePath, 'my_icon_2x.png')).toBe(true);
@@ -219,19 +225,23 @@ describe('addLayerToBundle', () => {
     const bundlePath = await createFixtureBundle(tmpDir, 'ExtPng');
     const pngPath = await writeTempPng(tmpDir, 'valid.png');
 
-    const pngResult = await addLayerToBundle(defaultAddLayerParams({
-      bundle_path: bundlePath,
-      image_path: pngPath,
-      layer_name: 'valid-png',
-    }));
+    const pngResult = await addLayerToBundle(
+      defaultAddLayerParams({
+        bundle_path: bundlePath,
+        image_path: pngPath,
+        layer_name: 'valid-png',
+      }),
+    );
     expect(isErrorResult(pngResult)).toBe(false);
 
     const svgPath = await writeTempSvg(tmpDir, 'valid.svg');
-    const svgResult = await addLayerToBundle(defaultAddLayerParams({
-      bundle_path: bundlePath,
-      image_path: svgPath,
-      layer_name: 'valid-svg',
-    }));
+    const svgResult = await addLayerToBundle(
+      defaultAddLayerParams({
+        bundle_path: bundlePath,
+        image_path: svgPath,
+        layer_name: 'valid-svg',
+      }),
+    );
     expect(isErrorResult(svgResult)).toBe(false);
   });
 
@@ -242,11 +252,13 @@ describe('addLayerToBundle', () => {
     const shPath = path.join(tmpDir, 'evil.sh');
     await fs.writeFile(shPath, '#!/bin/bash\necho pwned');
 
-    const shResult = await addLayerToBundle(defaultAddLayerParams({
-      bundle_path: bundlePath,
-      image_path: shPath,
-      layer_name: 'evil-sh',
-    }));
+    const shResult = await addLayerToBundle(
+      defaultAddLayerParams({
+        bundle_path: bundlePath,
+        image_path: shPath,
+        layer_name: 'evil-sh',
+      }),
+    );
     expect(isErrorResult(shResult)).toBe(true);
     expect(responseText(shResult)).toContain('unsupported image extension');
     expect(responseText(shResult)).toContain('.sh');
@@ -254,11 +266,13 @@ describe('addLayerToBundle', () => {
     const exePath = path.join(tmpDir, 'evil.exe');
     await fs.writeFile(exePath, Buffer.from('MZ'));
 
-    const exeResult = await addLayerToBundle(defaultAddLayerParams({
-      bundle_path: bundlePath,
-      image_path: exePath,
-      layer_name: 'evil-exe',
-    }));
+    const exeResult = await addLayerToBundle(
+      defaultAddLayerParams({
+        bundle_path: bundlePath,
+        image_path: exePath,
+        layer_name: 'evil-exe',
+      }),
+    );
     expect(isErrorResult(exeResult)).toBe(true);
     expect(responseText(exeResult)).toContain('unsupported image extension');
     expect(responseText(exeResult)).toContain('.exe');
@@ -274,11 +288,13 @@ describe('addLayerToBundle', () => {
     );
 
     const pngPath = await writeTempPng(tmpDir, 'first.png');
-    const result = await addLayerToBundle(defaultAddLayerParams({
-      bundle_path: bundlePath,
-      image_path: pngPath,
-      layer_name: 'first',
-    }));
+    const result = await addLayerToBundle(
+      defaultAddLayerParams({
+        bundle_path: bundlePath,
+        image_path: pngPath,
+        layer_name: 'first',
+      }),
+    );
 
     expect(isErrorResult(result)).toBe(false);
 
@@ -459,10 +475,7 @@ describe('moveLayer', () => {
 
     expect(isErrorResult(result)).toBe(false);
     const manifest = await readManifest(bundlePath);
-    expect(layerNames(manifest)).toEqual([
-      ['layer-0-0'],
-      ['layer-0-1', 'layer-1-0', 'layer-1-1'],
-    ]);
+    expect(layerNames(manifest)).toEqual([['layer-0-0'], ['layer-0-1', 'layer-1-0', 'layer-1-1']]);
   });
 
   test('move into new group inserted at index 0', async () => {

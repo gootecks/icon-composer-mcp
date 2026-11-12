@@ -42,7 +42,9 @@ export const CLEAR_RENDITIONS: ReadonlySet<string> = new Set(['ClearLight', 'Cle
 let resolvedPath: string | null | undefined; // undefined = not checked yet
 
 /** Reset cached path — for testing only */
-export function _resetCache(): void { resolvedPath = undefined; }
+export function _resetCache(): void {
+  resolvedPath = undefined;
+}
 
 async function findIctool(): Promise<string | null> {
   if (resolvedPath !== undefined) return resolvedPath;
@@ -88,12 +90,18 @@ export async function renderWithIctool(options: IctoolOptions): Promise<void> {
   const args = [
     options.bundlePath,
     '--export-image',
-    '--output-file', options.outputPath,
-    '--platform', options.platform ?? 'iOS',
-    '--rendition', options.rendition ?? 'Default',
-    '--width', String(options.width ?? 1024),
-    '--height', String(options.height ?? 1024),
-    '--scale', String(options.scale ?? 1),
+    '--output-file',
+    options.outputPath,
+    '--platform',
+    options.platform ?? 'iOS',
+    '--rendition',
+    options.rendition ?? 'Default',
+    '--width',
+    String(options.width ?? 1024),
+    '--height',
+    String(options.height ?? 1024),
+    '--scale',
+    String(options.scale ?? 1),
   ];
   if (options.lightAngle !== undefined) args.push('--light-angle', String(options.lightAngle));
   if (options.tintColor !== undefined) args.push('--tint-color', String(options.tintColor));

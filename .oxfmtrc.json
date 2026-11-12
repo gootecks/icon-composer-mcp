@@ -1,0 +1,6 @@
+{
+  "printWidth": 120,
+  "singleQuote": true,
+  "sortPackageJson": false,
+  "ignorePatterns": ["CODE_OF_CONDUCT.md", "**/*.icon/**", "skills/*/evals/**"]
+}

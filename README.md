@@ -236,9 +236,11 @@ Each binary is about 100 MB: the Bun runtime is about 88 MB, plus libvips at 16 
 
 - **Node.js 18+**
 - **macOS** with [Icon Composer](https://developer.apple.com/icon-composer/) for Liquid Glass rendering
+
   ```bash
   brew install --cask icon-composer
   ```
+
 - Flat previews, bundle creation/editing, and marketing export work on **any platform** without Icon Composer
 
 Run `icon-composer doctor` to check your setup.
@@ -415,12 +417,12 @@ icon-composer appearance <bundle_path> --target <fill|group|layer> --appearance 
 icon-composer fill <bundle_path> --type <solid|gradient|automatic|none> [options]
 ```
 
-| Option                 | Description                                  |
-| ---------------------- | -------------------------------------------- |
-| `--type <type>`        | `solid`, `gradient`, `automatic`, or `none`  |
+| Option                 | Description                                              |
+| ---------------------- | -------------------------------------------------------- |
+| `--type <type>`        | `solid`, `gradient`, `automatic`, or `none`              |
 | `--color <hex>`        | Primary color (solid, or gradient start: top at angle 0) |
 | `--color2 <hex>`       | Secondary color (gradient end: bottom at angle 0)        |
-| `--gradient-angle <n>` | Gradient angle in degrees (default: `0`)     |
+| `--gradient-angle <n>` | Gradient angle in degrees (default: `0`)                 |
 
 </details>
 
@@ -612,12 +614,12 @@ Add a layer to an existing bundle.
 
 ### `remove_layer`
 
-Remove a layer or group. `layer_index` required when `target=layer`.
+Remove a layer or group. `target` is `layer` or `group`; `layer_index` is required when `target=layer`.
 
 | Parameter        | Type    | Required | Default |
 | ---------------- | ------- | -------- | ------- |
 | `bundle_path`    | string  | yes      | —       |
-| `target`         | enum    | yes      | —       | `layer` or `group` |
+| `target`         | enum    | yes      | —       |
 | `group_index`    | number  | yes      | —       |
 | `layer_index`    | number  | no       | —       |
 | `cleanup_assets` | boolean | no       | `true`  |
@@ -633,15 +635,15 @@ Remove a layer or group. `layer_index` required when `target=layer`.
 
 Move a layer to another group, into a new group, or reorder it. Index 0 is the top. Indices refer to the bundle before the move; an emptied source group is removed.
 
-| Parameter        | Type    | Required | Default | Description                                                              |
-| ---------------- | ------- | -------- | ------- | ------------------------------------------------------------------------ |
-| `bundle_path`    | string  | yes      | —       | Path to `.icon` bundle                                                   |
-| `group_index`    | number  | yes      | —       | Source group                                                             |
-| `layer_index`    | number  | yes      | —       | Source layer within the group                                            |
-| `to_group_index` | number  | no       | —       | Destination group; with `create_group`, insert position (default `0`)    |
-| `to_layer_index` | number  | no       | `0`     | Position in the destination group (clamped)                              |
-| `create_group`   | boolean | no       | `false` | Move into a new group                                                    |
-| `group_name`     | string  | no       | —       | Name for the new group (default: layer name)                             |
+| Parameter        | Type    | Required | Default | Description                                                           |
+| ---------------- | ------- | -------- | ------- | --------------------------------------------------------------------- |
+| `bundle_path`    | string  | yes      | —       | Path to `.icon` bundle                                                |
+| `group_index`    | number  | yes      | —       | Source group                                                          |
+| `layer_index`    | number  | yes      | —       | Source layer within the group                                         |
+| `to_group_index` | number  | no       | —       | Destination group; with `create_group`, insert position (default `0`) |
+| `to_layer_index` | number  | no       | `0`     | Position in the destination group (clamped)                           |
+| `create_group`   | boolean | no       | `false` | Move into a new group                                                 |
+| `group_name`     | string  | no       | —       | Name for the new group (default: layer name)                          |
 
 </details>
 
@@ -727,13 +729,13 @@ Set dark/tinted overrides for background fill, group effects, or individual laye
 
 Set background fill.
 
-| Parameter        | Type   | Required | Description                              |
-| ---------------- | ------ | -------- | ---------------------------------------- |
-| `bundle_path`    | string | yes      | Path to bundle                           |
-| `fill_type`      | enum   | yes      | `solid`, `gradient`, `automatic`, `none` |
+| Parameter        | Type   | Required | Description                                          |
+| ---------------- | ------ | -------- | ---------------------------------------------------- |
+| `bundle_path`    | string | yes      | Path to bundle                                       |
+| `fill_type`      | enum   | yes      | `solid`, `gradient`, `automatic`, `none`             |
 | `color`          | string | no       | Hex color (solid, or gradient start: top at angle 0) |
-| `color2`         | string | no       | Gradient end color (bottom at angle 0)   |
-| `gradient_angle` | number | no       | Angle in degrees (default: `0`)          |
+| `color2`         | string | no       | Gradient end color (bottom at angle 0)               |
+| `gradient_angle` | number | no       | Angle in degrees (default: `0`)                      |
 
 </details>
 
@@ -906,7 +908,7 @@ icon-composer render ./out/AppIcon.icon glass-preview.png
 
 ## Architecture
 
-```
+```text
 src/lib/          Pure library (bundle, manifest, render, ictool)
 src/lib/ops-*.ts  Operations layer (MCP result format)
 src/cli.ts        CLI (Commander.js, 15 commands)

@@ -1,7 +1,12 @@
 [tools]
 bun = "1.4"
 fnox = { version = "latest", workflow = "release.yml" }
-hk = "latest"
+hk = "2.12.0"
+actionlint = "1.7.12"
+zizmor = "1.30.1"
+rumdl = "0.3.2"
+"npm:oxfmt" = "0.77.0"
+"npm:oxlint" = "1.92.0"
 
 [tasks.setup]
 description = "Install dependencies"

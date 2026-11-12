@@ -39,9 +39,7 @@ export async function readIconBundle(
       if (stat.size > maxAssetBytes) {
         const sizeMB = (stat.size / (1024 * 1024)).toFixed(1);
         const limitMB = (maxAssetBytes / (1024 * 1024)).toFixed(1);
-        throw new Error(
-          `Asset "${file}" exceeds maximum size (${sizeMB} MB > ${limitMB} MB)`,
-        );
+        throw new Error(`Asset "${file}" exceeds maximum size (${sizeMB} MB > ${limitMB} MB)`);
       }
       const buffer = await fs.readFile(filePath);
       assets.set(file, buffer);
@@ -66,17 +64,14 @@ export async function writeIconBundle(
   outputDir: string,
   bundleName: string,
   manifest: IconManifest,
-  assets: Map<string, Buffer>
+  assets: Map<string, Buffer>,
 ): Promise<string> {
   const bundlePath = path.join(outputDir, `${bundleName}.icon`);
   const assetsPath = path.join(bundlePath, 'Assets');
 
   await fs.mkdir(assetsPath, { recursive: true });
 
-  await fs.writeFile(
-    path.join(bundlePath, 'icon.json'),
-    JSON.stringify(manifest, null, 2)
-  );
+  await fs.writeFile(path.join(bundlePath, 'icon.json'), JSON.stringify(manifest, null, 2));
 
   for (const [filename, buffer] of assets) {
     if (path.basename(filename) !== filename) {
@@ -94,8 +89,5 @@ export async function writeIconBundle(
  * Errors propagate to the caller.
  */
 export async function saveManifest(bundlePath: string, manifest: IconManifest): Promise<void> {
-  await fs.writeFile(
-    path.join(bundlePath, 'icon.json'),
-    JSON.stringify(manifest, null, 2)
-  );
+  await fs.writeFile(path.join(bundlePath, 'icon.json'), JSON.stringify(manifest, null, 2));
 }

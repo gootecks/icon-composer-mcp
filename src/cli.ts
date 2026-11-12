@@ -12,9 +12,7 @@ const toFloat = (v: string) => parseFloat(v);
 
 // ── Output handler ──
 
-type McpContentBlock =
-  | { type: 'text'; text: string }
-  | { type: 'image'; data: string; mimeType: string };
+type McpContentBlock = { type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string };
 
 interface McpResult {
   content: McpContentBlock[];

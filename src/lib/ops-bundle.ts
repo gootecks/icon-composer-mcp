@@ -74,9 +74,7 @@ export async function createIcon(params: CreateIconParams): Promise<McpResult> {
       specular: params.specular,
       shadow: { kind: params.shadow_kind, opacity: params.shadow_opacity },
       blurMaterial: params.blur_material ?? null,
-      translucency: params.translucency_enabled
-        ? { enabled: true, value: params.translucency_value }
-        : undefined,
+      translucency: params.translucency_enabled ? { enabled: true, value: params.translucency_value } : undefined,
     });
 
     const assets = new Map<string, Buffer>();
@@ -112,16 +110,16 @@ export async function createIcon(params: CreateIconParams): Promise<McpResult> {
       });
     }
 
-    const bundlePath = await writeIconBundle(
-      params.output_dir,
-      params.bundle_name,
-      manifest,
-      assets,
-    );
+    const bundlePath = await writeIconBundle(params.output_dir, params.bundle_name, manifest, assets);
 
     const layerCount = layers.length > 1 ? layers.length : 1;
     return {
-      content: [{ type: 'text', text: `Created .icon bundle at: ${bundlePath} (${layerCount} layer${layerCount > 1 ? 's' : ''})` }],
+      content: [
+        {
+          type: 'text',
+          text: `Created .icon bundle at: ${bundlePath} (${layerCount} layer${layerCount > 1 ? 's' : ''})`,
+        },
+      ],
     };
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Unknown error';
@@ -143,7 +141,12 @@ export async function addLayerToBundle(params: AddLayerParams): Promise<McpResul
     const ext = path.extname(params.image_path).toLowerCase();
     if (!ALLOWED_IMAGE_EXTENSIONS.includes(ext)) {
       return {
-        content: [{ type: 'text', text: `Error: unsupported image extension "${ext}". Allowed: ${ALLOWED_IMAGE_EXTENSIONS.join(', ')}` }],
+        content: [
+          {
+            type: 'text',
+            text: `Error: unsupported image extension "${ext}". Allowed: ${ALLOWED_IMAGE_EXTENSIONS.join(', ')}`,
+          },
+        ],
         isError: true,
       };
     }
@@ -169,10 +172,7 @@ export async function addLayerToBundle(params: AddLayerParams): Promise<McpResul
     });
 
     await saveManifest(params.bundle_path, manifest);
-    await fs.writeFile(
-      path.join(params.bundle_path, 'Assets', imageName),
-      imageBuffer,
-    );
+    await fs.writeFile(path.join(params.bundle_path, 'Assets', imageName), imageBuffer);
 
     return {
       content: [{ type: 'text', text: `Added layer "${params.layer_name}" to ${params.bundle_path}` }],
@@ -192,7 +192,12 @@ export async function removeFromBundle(params: RemoveParams): Promise<McpResult>
 
     if (params.group_index < 0 || params.group_index >= manifest.groups.length) {
       return {
-        content: [{ type: 'text', text: `Error: Group index ${params.group_index} out of range (${manifest.groups.length} groups)` }],
+        content: [
+          {
+            type: 'text',
+            text: `Error: Group index ${params.group_index} out of range (${manifest.groups.length} groups)`,
+          },
+        ],
         isError: true,
       };
     }
@@ -217,7 +222,12 @@ export async function removeFromBundle(params: RemoveParams): Promise<McpResult>
       const group = manifest.groups[params.group_index];
       if (params.layer_index < 0 || params.layer_index >= group.layers.length) {
         return {
-          content: [{ type: 'text', text: `Error: Layer index ${params.layer_index} out of range (group has ${group.layers.length} layers)` }],
+          content: [
+            {
+              type: 'text',
+              text: `Error: Layer index ${params.layer_index} out of range (group has ${group.layers.length} layers)`,
+            },
+          ],
           isError: true,
         };
       }
@@ -266,7 +276,11 @@ export async function moveLayer(params: MoveLayerParams): Promise<McpResult> {
       return fail(`Error: Group index ${params.group_index} out of range (${groups.length} groups)`);
     }
     const srcGroup = groups[params.group_index];
-    if (!Number.isInteger(params.layer_index) || params.layer_index < 0 || params.layer_index >= srcGroup.layers.length) {
+    if (
+      !Number.isInteger(params.layer_index) ||
+      params.layer_index < 0 ||
+      params.layer_index >= srcGroup.layers.length
+    ) {
       return fail(`Error: Layer index ${params.layer_index} out of range (group has ${srcGroup.layers.length} layers)`);
     }
 
@@ -277,7 +291,9 @@ export async function moveLayer(params: MoveLayerParams): Promise<McpResult> {
     const toGroupIndex = params.to_group_index ?? 0;
     if (createGroup) {
       if (!Number.isInteger(toGroupIndex) || toGroupIndex < 0 || toGroupIndex > groups.length) {
-        return fail(`Error: Destination group index ${toGroupIndex} out of range (valid insert positions 0-${groups.length})`);
+        return fail(
+          `Error: Destination group index ${toGroupIndex} out of range (valid insert positions 0-${groups.length})`,
+        );
       }
     } else if (!Number.isInteger(toGroupIndex) || toGroupIndex < 0 || toGroupIndex >= groups.length) {
       return fail(`Error: Destination group index ${toGroupIndex} out of range (${groups.length} groups)`);
@@ -305,10 +321,12 @@ export async function moveLayer(params: MoveLayerParams): Promise<McpResult> {
 
     const finalGroupIndex = groups.indexOf(destGroup);
     return {
-      content: [{
-        type: 'text',
-        text: `Moved layer "${layer.name}" from group ${params.group_index} (layer ${params.layer_index}) to ${createGroup ? 'new ' : ''}group ${finalGroupIndex} (layer ${toLayerIndex}) in ${params.bundle_path}`,
-      }],
+      content: [
+        {
+          type: 'text',
+          text: `Moved layer "${layer.name}" from group ${params.group_index} (layer ${params.layer_index}) to ${createGroup ? 'new ' : ''}group ${finalGroupIndex} (layer ${toLayerIndex}) in ${params.bundle_path}`,
+        },
+      ],
     };
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Unknown error';
@@ -328,10 +346,12 @@ export async function inspectBundle(params: { bundle_path: string }): Promise<Mc
     });
 
     return {
-      content: [{
-        type: 'text',
-        text: `Manifest:\n${JSON.stringify(manifest, null, 2)}\n\nAssets:\n${assetList.join('\n') || '  (none)'}`,
-      }],
+      content: [
+        {
+          type: 'text',
+          text: `Manifest:\n${JSON.stringify(manifest, null, 2)}\n\nAssets:\n${assetList.join('\n') || '  (none)'}`,
+        },
+      ],
     };
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Unknown error';
