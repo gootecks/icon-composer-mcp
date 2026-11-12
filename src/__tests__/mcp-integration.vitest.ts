@@ -14,10 +14,6 @@ const TEST_PNG = Buffer.from(
   'base64',
 );
 
-const TEST_SVG = Buffer.from(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="white"/></svg>',
-);
-
 let client: Client;
 let tmpDir: string;
 
@@ -47,12 +43,6 @@ afterAll(async () => {
 async function writePng(name: string): Promise<string> {
   const p = path.join(tmpDir, name);
   await writeFile(p, TEST_PNG);
-  return p;
-}
-
-async function writeSvg(name: string): Promise<string> {
-  const p = path.join(tmpDir, name);
-  await writeFile(p, TEST_SVG);
   return p;
 }
 

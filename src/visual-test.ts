@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import sharp from 'sharp';
 import { createManifest, addGroup, addLayer } from './lib/manifest';
 import { writeIconBundle, readIconBundle, saveManifest } from './lib/bundle';
-import { renderPreview, compositeOnBackground, type ApplePresetName } from './lib/render';
+import { renderPreview, type ApplePresetName } from './lib/render';
 import { ictoolAvailable, renderWithIctool } from './lib/ictool';
 import { setFill } from './lib/ops-glass';
 import { exportPreview, renderLiquidGlass } from './lib/ops-render';
@@ -112,54 +112,6 @@ async function renderFlatPreview(bundlePath: string, outputPath: string, size: n
   const { manifest, assets } = await readIconBundle(bundlePath);
   const buffer = await renderPreview(manifest, assets, size, appearance);
   await fs.writeFile(outputPath, buffer);
-}
-
-// ── Helper: render with canvas background ──
-
-async function renderWithCanvas(
-  bundlePath: string,
-  outputPath: string,
-  canvasBg: Parameters<typeof compositeOnBackground>[1],
-  size: number = 512,
-  zoom: number = 1.0,
-  appearance?: 'dark' | 'tinted'
-): Promise<void> {
-  const { manifest, assets } = await readIconBundle(bundlePath);
-  let iconBuffer = await renderPreview(manifest, assets, size, appearance);
-
-  if (zoom > 1.0) {
-    // For zoom > 1.0: scale the icon up, then crop center to canvas size
-    const scaledSize = Math.round(size * zoom);
-    const scaledIcon = await sharp(iconBuffer)
-      .resize(scaledSize, scaledSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-      .png()
-      .toBuffer();
-
-    // Resolve background at canvas size
-    const { resolveCanvasBackground } = await import('./lib/render');
-    const bgBuffer = await resolveCanvasBackground(canvasBg, size);
-
-    // Extract center crop from scaled icon
-    const cropOffset = Math.round((scaledSize - size) / 2);
-    const croppedIcon = await sharp(scaledIcon)
-      .extract({ left: cropOffset, top: cropOffset, width: size, height: size })
-      .png()
-      .toBuffer();
-
-    if (bgBuffer) {
-      const result = await sharp(bgBuffer)
-        .composite([{ input: croppedIcon }])
-        .png()
-        .toBuffer();
-      await fs.writeFile(outputPath, result);
-    } else {
-      await fs.writeFile(outputPath, croppedIcon);
-    }
-  } else {
-    const iconSize = Math.round(size * zoom);
-    const buffer = await compositeOnBackground(iconBuffer, canvasBg, size, iconSize);
-    await fs.writeFile(outputPath, buffer);
-  }
 }
 
 // ── Test case definitions ──

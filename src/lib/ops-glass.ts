@@ -1,5 +1,3 @@
-import * as fs from 'node:fs/promises';
-import * as path from 'node:path';
 import { solidFill, hexToIconColor } from './manifest';
 import { readIconBundle, saveManifest } from './bundle';
 import { toBlendMode } from '../types';

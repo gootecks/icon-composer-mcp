@@ -8,7 +8,6 @@ import {
   addLayer,
   writeIconBundle,
   readIconBundle,
-  createQuickIcon,
   renderPreview,
   resolveFill,
 } from './icon-builder';

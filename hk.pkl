@@ -13,6 +13,7 @@ exclude = List(
 
 steps {
     ["actionlint"] = Builtins.actionlint
+    ["oxlint"] = Builtins.ox_lint
     ["zizmor"] = Builtins.zizmor
 }
 

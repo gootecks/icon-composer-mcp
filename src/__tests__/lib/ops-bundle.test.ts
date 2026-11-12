@@ -20,7 +20,7 @@ import {
   moveLayer,
   inspectBundle,
 } from '../../lib/ops-bundle';
-import type { CreateIconParams, AddLayerParams, RemoveParams } from '../../lib/ops-bundle';
+import type { CreateIconParams, AddLayerParams } from '../../lib/ops-bundle';
 
 let tmpDir: string;
 

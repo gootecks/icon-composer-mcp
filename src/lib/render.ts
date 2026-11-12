@@ -153,16 +153,6 @@ export async function resolveCanvasBackground(bg: CanvasBackground, size: number
   }
 }
 
-// Get the native size of an apple preset background image
-async function getApplePresetNativeSize(name: ApplePresetName): Promise<number> {
-  const bgDir = getBackgroundsDir();
-  if (!bgDir) return 8192;
-  const filename = APPLE_PRESET_FILES[name];
-  const bgPath = path.join(bgDir, filename);
-  const metadata = await sharp(bgPath).metadata();
-  return metadata.width ?? 8192;
-}
-
 // Composite an icon image on top of a canvas background
 // For apple presets, preserves the native ratio between icon and background
 export async function compositeOnBackground(
@@ -186,9 +176,6 @@ export async function compositeOnBackground(
     // zoom=1.0 (default) → visible icon is ~50% of output
     // zoom=0.5 → zoomed out, visible icon is ~25%
     // zoom<0.25 → full background visible
-    const { width: iconW } = await sharp(iconBuffer).metadata();
-    const nativeIconSize = iconW ?? 1024;
-    const zoom = iconSize ? (iconSize / canvasSize) : 1.0;
 
     // Match the non-preset behavior: icon is (zoom * 100%) of the output canvas.
     // Crop center of the 8192 bg to show a zoomed-in portion, then resize to canvas.

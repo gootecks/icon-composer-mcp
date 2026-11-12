@@ -6,7 +6,7 @@ import { resolveFill } from './manifest';
 import { parseColorString } from './flat-compose';
 import { ictoolAvailable, renderWithIctool, CLEAR_RENDITIONS } from './ictool';
 import { stripAlpha } from './image-utils';
-import type { IconManifest, McpResult, McpContentBlock } from '../types';
+import type { McpResult, McpContentBlock } from '../types';
 
 const MAX_INLINE_IMAGE_BYTES = 4 * 1024 * 1024; // 4 MB
 
