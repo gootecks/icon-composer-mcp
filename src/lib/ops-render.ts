@@ -3,15 +3,12 @@ import sharp from 'sharp';
 import { readIconBundle, saveManifest } from './bundle';
 import { renderPreview, compositeOnBackground, type CanvasBackground, type ApplePresetName } from './render';
 import { resolveFill } from './manifest';
+import { parseColorString } from './flat-compose';
 import { ictoolAvailable, renderWithIctool, CLEAR_RENDITIONS } from './ictool';
 import { stripAlpha } from './image-utils';
 import type { IconManifest, McpResult, McpContentBlock } from '../types';
 
 const MAX_INLINE_IMAGE_BYTES = 4 * 1024 * 1024; // 4 MB
-
-// ictool and Icon Composer use the manifest scale values directly.
-// scale=1.0 renders at ~65% of icon area — this is Apple's native behavior.
-// Our flat renderer applies the same 0.65 factor to match.
 
 export interface ExportPreviewParams {
   bundle_path: string;
@@ -162,11 +159,11 @@ export async function exportPreview(params: ExportPreviewParams): Promise<McpRes
               }
             }
             await saveManifest(params.bundle_path, manifest);
-            await fs.unlink(tmpLarge).catch(() => {});
+            await fs.unlink(tmpLarge).catch(() => { });
           }
         }
       } finally {
-        await fs.unlink(tmpPath).catch(() => {});
+        await fs.unlink(tmpPath).catch(() => { });
       }
       renderer = 'liquid-glass';
     } else {
@@ -259,41 +256,53 @@ export interface ExportMarketingParams {
   bundle_path: string;
   output_path: string;
   size?: number;
+  flat?: boolean;
   return_image?: boolean;
 }
 
 /**
- * Export a flat 1024x1024 (default) marketing PNG for App Store Connect.
- * No glass effects, no alpha channel.
+ * Export an opaque, square 1024x1024 (default) marketing PNG for App Store Connect.
+ * Liquid Glass via ictool when available; the flat composite fills the corners
+ * ictool leaves transparent, and is the whole image when ictool is missing.
  */
 export async function exportMarketing(params: ExportMarketingParams): Promise<McpResult> {
   try {
     const size = params.size ?? 1024;
     const { manifest, assets } = await readIconBundle(params.bundle_path);
 
-    // Render flat preview (no ictool, no glass)
     let buffer = await renderPreview(manifest, assets, size);
+    let renderer = 'flat';
 
-    // Determine background color from manifest fill for alpha flattening
-    const fill = resolveFill(manifest);
-    let bgColor = { r: 255, g: 255, b: 255 };
-    if (fill && typeof fill === 'object' && 'solid' in fill) {
-      const parts = fill.solid.split(':')[1]?.split(',').map(Number);
-      if (parts && parts.length >= 3) {
-        bgColor = {
-          r: Math.round(parts[0] * 255),
-          g: Math.round(parts[1] * 255),
-          b: Math.round(parts[2] * 255),
-        };
+    if (!params.flat && await ictoolAvailable()) {
+      const tmpPath = params.output_path + '.ictool.png';
+      try {
+        await renderWithIctool({
+          bundlePath: params.bundle_path,
+          outputPath: tmpPath,
+          width: size,
+          height: size,
+        });
+        buffer = await sharp(buffer)
+          .composite([{ input: await fs.readFile(tmpPath), left: 0, top: 0 }])
+          .png()
+          .toBuffer();
+      } finally {
+        await fs.unlink(tmpPath).catch(() => { });
       }
+      renderer = 'liquid-glass';
     }
+
+    const fill = resolveFill(manifest);
+    const bgColor = fill && typeof fill === 'object' && 'solid' in fill
+      ? parseColorString(fill.solid)
+      : { r: 255, g: 255, b: 255 };
 
     buffer = await stripAlpha(buffer, bgColor);
     await fs.writeFile(params.output_path, buffer);
 
     const stat = await fs.stat(params.output_path);
     const content: McpContentBlock[] = [
-      { type: 'text', text: `Exported marketing icon to ${params.output_path} (${size}x${size}, no alpha, ${(stat.size / 1024).toFixed(1)} KB)` },
+      { type: 'text', text: `Exported marketing icon to ${params.output_path} (${size}x${size}, ${renderer}, no alpha, ${(stat.size / 1024).toFixed(1)} KB)` },
     ];
     if (params.return_image !== false && buffer.length <= MAX_INLINE_IMAGE_BYTES) {
       content.push({ type: 'image', data: buffer.toString('base64'), mimeType: 'image/png' });

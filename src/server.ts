@@ -25,7 +25,7 @@ const server = new McpServer(
 4. **set_glass_effects** — Configure Liquid Glass: specular highlights, blur material, shadows, translucency.
 5. **set_appearances** — Add dark mode or tinted mode overrides for the background fill or group properties.
 6. **export_preview** — Render a preview PNG. Uses Apple's ictool for Liquid Glass rendering when available, falls back to flat composite.
-7. **export_marketing** — Export a flat 1024x1024 PNG with no alpha channel for App Store Connect.
+7. **export_marketing** — Export an opaque 1024x1024 PNG with no alpha channel for App Store Connect. Uses ictool for Liquid Glass when available, falls back to flat composite.
 
 ## Key Concepts
 
@@ -261,11 +261,12 @@ server.tool(
 // ── Tool: export_marketing ──
 server.tool(
   'export_marketing',
-  'Export a flat marketing PNG for App Store Connect. No Liquid Glass effects, no alpha channel. Produces a 1024x1024 (default) opaque PNG ready for upload.',
+  'Export an opaque, square marketing PNG for App Store Connect, with no alpha channel. Uses Apple\'s ictool for Liquid Glass rendering by default (falls back to flat composite if Icon Composer is not installed). Produces a 1024x1024 (default) PNG ready for upload.',
   {
     bundle_path: z.string().describe('Path to .icon bundle'),
     output_path: z.string().describe('Output path for the PNG file'),
     size: z.number().min(16).max(2048).default(1024).describe('Output size in pixels (default 1024)'),
+    flat: z.boolean().default(false).describe('Force flat composite rendering (skip ictool/Liquid Glass)'),
     return_image: z.boolean().default(true).describe('Return the rendered image inline as base64 (default true)'),
   },
   async (params) => exportMarketing(params),
@@ -338,7 +339,7 @@ server.prompt(
       content: {
         type: 'text',
         text: `Export App Store assets from ${params.bundle_path}:
-1. Call export_marketing with output_path "${params.output_dir}/marketing-1024.png" — this is the flat 1024x1024 PNG required by App Store Connect (no alpha channel)
+1. Call export_marketing with output_path "${params.output_dir}/marketing-1024.png" — this is the opaque 1024x1024 PNG required by App Store Connect (no alpha channel)
 2. Call export_preview with size 512 to generate a preview for review
 3. If dark mode is configured, also export a dark mode preview
 4. Remind the user that the .icon bundle itself goes into the Xcode project's asset catalog`,
