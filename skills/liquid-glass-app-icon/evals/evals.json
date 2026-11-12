@@ -1,0 +1,17 @@
+{
+  "skill_name": "liquid-glass-app-icon",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Can you make an app icon for Tidepool? It's my little Mac menu bar app that shows tide times for my local beach. It's a SwiftPM project built with build.sh, no Xcode project. Teal accent, dark UI. Wire it into the build too.",
+      "expected_output": "Icon/Tidepool.icon with per-layer SVGs and at most four groups, Icon/previews/sheet.png showing four renditions plus small sizes, actool accepts the bundle, build.sh compiles the icon and Info.plist has both icon keys, Icon/README.md written, opaque marketing PNG.",
+      "files": ["evals/files/tidepool/"]
+    },
+    {
+      "id": 1,
+      "prompt": "The Ledgerline icon looks off. The orange dot comes out pale next to the page, and in tinted mode it basically vanishes. The bundle is in Icon/Ledgerline.icon. Fix it and show me all four renditions.",
+      "expected_output": "Orange dot in its own top group with glass off so it stays saturated, a tinted fill override so it is visible in TintedLight and TintedDark, a contact sheet of the four renditions, actool accepts the bundle.",
+      "files": ["evals/files/ledgerline/"]
+    }
+  ]
+}

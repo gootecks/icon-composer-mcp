@@ -49,3 +49,4 @@ gallery/
 
 # fnox encrypted local cache
 fnox.local.toml
+skills/*-workspace/

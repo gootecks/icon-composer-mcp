@@ -1,6 +1,6 @@
 ---
 name: liquid-glass-app-icon
-description: "Use when designing an Apple app icon as an Icon Composer .icon bundle with the icon-composer MCP or CLI. Covers drawing SVG glyphs, Liquid Glass, dark and tinted modes, macOS previews, wiring into an app, and App Store export."
+description: "Design, build and ship an Apple app icon as an Icon Composer .icon bundle with Liquid Glass, using the icon-composer MCP tools or CLI. Use whenever the user wants an app icon made, redrawn or modernised for macOS, iOS or watchOS, mentions Icon Composer, .icon, AppIcon, .icns, Liquid Glass, or dark and tinted icon variants, needs an icon wired into an Xcode or script-built app, or needs the 1024 px App Store PNG, even if they only say 'make an icon for my app'."
 ---
 
 # Liquid Glass app icon
@@ -13,138 +13,144 @@ Work in rounds: draw concepts, render them, let the user pick, then refine.
 
 - Icon Composer must be installed for Liquid Glass renders. It ships inside Xcode 26+
   (`Xcode.app/Contents/Applications/Icon Composer.app`). Run `icon-composer doctor` to check.
-- Without it, previews fall back to a flat composite with no glass.
+- Without it, previews fall back to a flat composite with no glass. Tell the user, because
+  they cannot judge a glass icon from a flat preview.
+- The scripts need ImageMagick (`magick`) and the `icon-composer` CLI on `PATH`.
+
+## Bundled files
+
+Paths are relative to this skill's folder.
+
+| File                             | Use it when                                                              |
+| -------------------------------- | ------------------------------------------------------------------------ |
+| `scripts/render-renditions.sh`   | Rendering Default, Dark, TintedLight and TintedDark in one call          |
+| `scripts/contact-sheet.sh`       | Tiling renders into one sheet with 128, 64 and 32 px copies              |
+| `scripts/actool-check.sh`        | Testing that the bundle compiles the way an app build compiles it        |
+| `assets/example/`                | You want a finished bundle to copy structure from; start with its README |
+| `assets/Icon-README.template.md` | Writing the app repo's `Icon/README.md`                                  |
+| `references/design-notes.md`     | Before drawing concepts, and before showing a round                      |
+| `references/appearances.md`      | A layer must keep its color, dark or tinted looks wrong, textures, depth |
+| `references/wiring.md`           | Adding the bundle to an Xcode project or a script-built app              |
 
 ## Workflow
 
 1. **Brief.** Read the app's README and UI palette. Write down one sentence on what
    the app does, its accent color, and whether its UI is light or dark.
-   Ask the user for brand assets (logo SVGs, a palette) before drawing anything.
+   Ask the user for brand assets (logo SVGs, a palette) and reference images before
+   drawing anything.
 2. **Sources.** Keep everything in the app repo under `Icon/`: the bundle at
    `Icon/<App>.icon` and renders in `Icon/previews/`. Draw layer SVGs in a scratch
    folder; the bundle copies them into its `Assets/`.
-   Use `Icon/concepts/` for throwaway rounds and delete it once a concept is picked.
+   Put throwaway concept rounds in `/tmp`, or in `Icon/concepts/` if the user wants to
+   open the files, and delete that folder once a concept is picked.
    If another session has uncommitted work in the app repo, do not touch that working
-   tree. Draw in `/tmp`, and for the final commit use
+   tree. Work in `/tmp`, and for the final commit use
    `git worktree add ../<repo>-icon -b feat/<N>-app-icon origin/main`.
-3. **Concepts.** Draw three glyph SVGs that differ in idea, not just in detail.
-   Follow the glyph rules below. One SVG per concept is fine at this stage.
-4. **Build.** For each concept call `create_icon` with `glyph_scale: 1.0`, then `set_fill`.
+3. **Concepts.** Read `references/design-notes.md`. Draw three glyph SVGs that differ in
+   idea, not just in detail. Follow the glyph rules below. One SVG per concept is fine
+   at this stage.
+4. **Build.** For each concept call `create_icon` with `glyph_scale: 2.56` (see "Tool
+   gotchas" for why), then `set_fill`.
 5. **Render.** Call `render_liquid_glass` with `platform` set to the target
    (`macOS` for Mac apps), `width` and `height` 1024. The appearance parameter is
    named `rendition`; render `Default` for concepts.
-6. **Contact sheet.** Tile the renders into one image with a row of small sizes under
-   them, and look at it before showing the user. Fix anything broken first.
+6. **Contact sheet.** Put one `Default` render per concept on a sheet and look at it
+   before showing the user. Fix anything broken first.
+
+   ```bash
+   scripts/contact-sheet.sh Icon/concepts/sheet.png a/Default.png b/Default.png c/Default.png
+   ```
+
 7. **Pick.** Show the sheet, give a recommendation with a reason, and let the user choose
    the concept and the background (brand-color tile or neutral tile).
-8. **Final bundle.** Rebuild the picked concept from per-layer SVGs (see below), then
-   render `Default`, `Dark`, `TintedLight`, and `TintedDark`.
-   Compile it with `actool` now, before the user signs off. `actool` enforces rules
-   that the preview renderer ignores.
-9. **Wire in.** Add the bundle to the app (see below), build, and check the built icon.
-10. **Export.** Produce the 1024 opaque PNG (see below).
+8. **Final bundle.** Rebuild the picked concept from per-layer SVGs (next section), then
+   render all four renditions, make the sheet, and compile with `actool` before the user
+   signs off. `actool` enforces rules that the preview renderer ignores.
+
+   ```bash
+   scripts/render-renditions.sh Icon/App.icon /tmp/app-renders macOS
+   scripts/contact-sheet.sh Icon/previews/sheet.png /tmp/app-renders/{Default,Dark,TintedLight,TintedDark}.png
+   scripts/actool-check.sh Icon/App.icon
+   ```
+
+   If a rendition looks wrong, read `references/appearances.md`.
+
+9. **Wire in.** Read `references/wiring.md`, add the bundle to the app, build, and check
+   the built icon.
+10. **Export and document.** Produce the 1024 opaque PNG (see "App Store export") and
+    write `Icon/README.md` from `assets/Icon-README.template.md`.
 
 ## Final bundle from per-layer SVGs
 
 Splitting one SVG is quick for concepts. For the final icon, give each layer its own
 SVG file so each can carry its own gradient and be edited alone.
+`assets/example/SlabVideo.icon` is a finished bundle built this way.
 
 1. `create_icon` with the main layer, `glyph_scale: 1.0`, and `split_layers: false`.
-2. `add_layer_to_icon` for each further layer. Use `create_group: true` for a layer
-   that should sit at a different depth, such as a backdrop shape, and set its `opacity` there.
-3. `add_layer_to_icon` appends, which puts the new layer **under** the existing ones in
-   that group. Reorder the `layers` array in `icon.json` so the top layer is first.
+   It always names the asset `foreground.svg` and the layer `glyph`.
+2. `add_layer_to_icon` for each further layer, with a meaningful `layer_name`. Use
+   `create_group: true` for a layer that should sit at a different depth, such as a
+   backdrop shape, and set its `opacity` there.
+3. Order runs top first, for both `groups` and each group's `layers` array.
+   `add_layer_to_icon` appends, which puts the new layer or group **under** the existing
+   ones. Reorder the arrays in `icon.json` where needed.
 4. A new group has no glass settings. Call `set_glass_effects` with its `group_index`.
 5. `set_fill` for the background, then render all four renditions.
 
-SVG `linearGradient` fills inside a layer render correctly and survive every rendition.
+SVG `linearGradient` fills inside a layer keep their colors and direction in every rendition.
 
 ### Group limit
 
 `actool` rejects a bundle with more than four visible groups ("Too many visible groups").
 `render_liquid_glass` renders five or six without complaint, so the error only shows
-at build time. Plan for four groups at most.
+at build time. Plan for four groups at most, and run `scripts/actool-check.sh` to confirm.
 
 - Layers in one group share glass settings and cast no shadow on each other.
 - Spend the groups on the shadows that matter most, such as a button over its base.
 - Merge the rest by moving their entries into one group's `layers` array, top layer first.
 
-### Textures and depth
+## Glyph SVG rules
 
-- The tile fill can only be a color or gradient. For a texture, add a full-bleed
-  1024 px PNG as the only content of the bottom group, with `glass: false` on the
-  layer, `specular: false`, and shadow `none`.
-- For a dark variant, add a second PNG under the first in the same group, then hide the
-  top one in dark mode: `set_appearances` with `target: "layer"`, `appearance: "dark"`,
-  `hidden: true`.
-- Quantize texture PNGs (`magick in.png -colors 24 -strip PNG8:out.png`). This took a
-  2 MB speckle texture down to about 150 KB.
-- A convex button is two groups: a base circle with a top-to-bottom linear gradient,
-  and a smaller circle above it with an off-center `radialGradient` (light at about
-  40% across, 30% down). The group shadow between them supplies the depth.
-- A saturated color shows dome shading far better than black.
+- Use a `viewBox="0 0 1024 1024"` canvas and draw the glyph at its final size and position.
+  Keep important shapes inside roughly 100 to 924 on both axes. With the scale values
+  under "Tool gotchas", the canvas maps about one to one onto the rendered tile.
+- Use filled `<path>` or `<circle>` shapes only. Stroke-only paths render as solid black
+  fills, so convert every stroke to a filled outline. Do not use `<text>`.
+- Draw the glyph in white (`#FFFFFF`). Icon Composer recolors white layers with the
+  background fill in the Dark rendition, which gives a colored glyph on a dark tile for free.
+  Colored shapes, such as a red dot, keep their color in every rendition except tinted.
+- Each top-level shape becomes its own glass layer. The first shape in the file is the
+  top layer, which is the reverse of SVG paint order. Put accents first and backdrops last.
+- `fill-opacity` in the SVG is ignored. Set `opacity` on the layer in `icon.json` instead.
+- A cut-out drawn with `fill-rule="evenodd"` works, and shows whatever layer is behind it.
+  Keep lower layers out from under the hole if the background should show through.
+- Overlapping sub-paths inside one `<path>` can cancel each other and leave a hole.
+  Give each piece its own `<path>`. Each one then also gets its own gradient sheen.
+- To reuse an official logo path at another size, bake the transform into the path
+  instead of using `transform`. If the path uses relative commands and has no arcs,
+  multiply every number by the scale, and map only the first `m` pair with
+  `(v - center) * scale + target`.
 
-## Wiring into an app
+## Tool gotchas
 
-- **Xcode project:** set the target's App Icon to the bundle name
-  (`ASSETCATALOG_COMPILER_APPICON_NAME`). If the app folder is a file-system
-  synchronized group, put `<App>.icon` inside that folder and Xcode picks it up with no
-  other project change. Otherwise drag it into the project.
-- **Script-built app (SwiftPM, swiftc):** compile the bundle with `actool` into
-  `Contents/Resources`, and add both icon keys to `Info.plist`. This writes `Assets.car`
-  for macOS 26+ and a `<App>.icns` fallback for older systems. It needs Xcode 26+, not
-  just the Command Line Tools.
-  To keep the build working for people without Xcode 26, let the icon step fail softly:
-  end the `actool` command with `>/dev/null 2>&1 || echo "warning: app icon skipped" >&2`.
-  The two `Info.plist` keys are harmless when the icon files are missing.
-
-  ```bash
-  xcrun actool Icon/App.icon --compile "$app/Contents/Resources" --app-icon App \
-    --platform macosx --minimum-deployment-target 14.0 \
-    --output-partial-info-plist /dev/null >/dev/null
-  ```
-
-  ```xml
-  <key>CFBundleIconFile</key><string>App</string>
-  <key>CFBundleIconName</key><string>App</string>
-  ```
-
-- Check the result: `sips -s format png "$app/Contents/Resources/App.icns" --out /tmp/icns.png`.
-
-## Accents, dark mode, and tinted mode
-
-- Glass translucency washes out small colored accents (a red dot turns pink). Move the
-  accent into its own top group with `specular: false`, shadow `none`, translucency
-  disabled, and `glass: false` on the layer. It then renders as a solid color.
-- Tinted renditions recolor every layer with one system hue by luminance. No layer can
-  keep its own color there, so tell the user that up front.
-- To keep an accent readable in tinted mode, give it a tinted fill override:
-  `set_appearances` with `target: "layer"`, `appearance: "tinted"`, `fill_color: "#000000"`.
-  Black reads as a cut-out in both TintedLight and TintedDark. White disappears on a
-  light tinted glyph.
-- One `tinted` override covers both TintedLight and TintedDark, so render both to check.
-- A neutral (graphite) tile with a colored glyph looks almost the same in light and
-  dark. That is fine; set the dark fill a step darker.
-- `set_fill` with a gradient writes a top-level `fill` key, and the dark fill override
-  is then ignored. For a gradient tile with a different dark tile, delete `fill` and put
-  both gradients in `fill-specializations`:
-
-  ```json
-  "fill-specializations": [
-    { "value": { "linear-gradient": ["srgb:1,0.48,0.27,1", "srgb:0.83,0.09,0.18,1"],
-                 "orientation": { "start": { "x": 0.5, "y": 1 }, "stop": { "x": 0.5, "y": 0 } } } },
-    { "appearance": "dark",
-      "value": { "linear-gradient": ["srgb:0.48,0.10,0.12,1", "srgb:0.23,0.04,0.05,1"],
-                 "orientation": { "start": { "x": 0.5, "y": 1 }, "stop": { "x": 0.5, "y": 0 } } } }
-  ]
-  ```
-
-## Keeping the repo small
-
-- The bundle's `Assets/` folder is the source of truth for layers. Do not keep a second
-  copy of the SVGs.
-- Commit the contact sheet and the marketing PNG, not every 1024 px render.
-- Add a short `Icon/README.md` listing the layers and any rendition quirks.
+- `glyph_scale` means two different things, so check the first render against the SVG.
+  - With `split_layers: true` (the default) each shape is written as a 400 px SVG, so
+    `1.0` draws the glyph at 39% of its size. Pass `glyph_scale: 2.56` (1024 / 400) to
+    get the drawing at the size it has on the canvas.
+  - With `split_layers: false` the SVG is copied as it is, so `1.0` is full size and the
+    default `1.75` blows the glyph past the icon edge.
+  - `add_layer_to_icon` copies the file as it is too: use scale `1.0`.
+- `set_fill` with `fill_type: "gradient"`: `color` renders at the **top** and `color2`
+  at the bottom when `gradient_angle` is 0. The tool description says the opposite.
+- `export_preview` renders the iOS shape only. Use `render_liquid_glass` with
+  `platform: "macOS"` to see the macOS tile.
+- Pass `return_image: false` when the agent cannot display inline images, then read the PNG file.
+- Do not run `set_fill` and a render in parallel. The render can read the bundle before the fill lands.
+- An unknown parameter is ignored without an error. If all four renditions look the
+  same, check the parameter name (`rendition`, not `appearance`).
+- The `icon-composer` CLI has the same operations when the MCP tools are not connected.
+  Parameters become flags (`glyph_scale` is `--glyph-scale`, `split_layers: false` is
+  `--no-split-layers`); run `icon-composer <command> --help` for the rest.
 
 ## App Store export
 
@@ -158,80 +164,12 @@ at build time. Plan for four groups at most.
 - Versions before the gootecks fork's PR #4 shrink the glyph, drop the gradient fill and
   reverse the layer order. If the output looks like that, rebuild the binaries with
   `mise run install` in the icon-composer-mcp checkout.
-- ImageMagick writes contact sheets and other composites as 16-bit PNGs. Add
-  `-depth 8 -strip`; a 1024 px icon went from 1.8 MB to 0.5 MB.
 
-## Glyph SVG rules
+## Keeping the repo small
 
-- Use a `viewBox="0 0 1024 1024"` canvas and draw the glyph at its final size and position.
-  Keep important shapes inside roughly 100 to 924 on both axes.
-- Use filled `<path>` or `<circle>` shapes only. Stroke-only paths render as solid black
-  fills, so convert every stroke to a filled outline. Do not use `<text>`.
-- Draw the glyph in white (`#FFFFFF`). Icon Composer recolors white layers with the
-  background fill in the Dark rendition, which gives a colored glyph on a dark tile for free.
-  Colored shapes, such as a red dot, keep their color in every rendition.
-- Each top-level shape becomes its own glass layer. The first shape in the file is the
-  top layer, which is the reverse of SVG paint order. Put accents first and backdrops last.
-- `fill-opacity` in the SVG is ignored. Set `opacity` on the layer in `icon.json` instead.
-- A cut-out drawn with `fill-rule="evenodd"` works, and shows whatever layer is behind it.
-  Keep lower layers out from under the hole if the background should show through.
-- Overlapping sub-paths inside one `<path>` can cancel each other and leave a hole.
-  Give each piece its own `<path>`. Each one then also gets its own gradient sheen.
-- The 1024 canvas maps about one to one onto the rendered tile.
-- The tile shape is set by the system: a rounded square on macOS and iOS, a circle only
-  on watchOS. For a round look, draw a disc layer inside the tile.
-- To reuse an official logo path at another size, bake the transform into the path
-  instead of using `transform`. If the path uses relative commands and has no arcs,
-  multiply every number by the scale, and map only the first `m` pair with
-  `(v - center) * scale + target`.
-- A third-party logo is usually a trademark. Say so when you propose it, and note the
-  owner in `Icon/README.md`.
-
-## Tool gotchas
-
-- `create_icon` defaults `glyph_scale` to 1.75, which blows the glyph past the icon edge.
-  Always pass `glyph_scale: 1.0` and check `position.scale` in `icon.json`.
-- `set_fill` with `fill_type: "gradient"`: `color` renders at the **top** and `color2`
-  at the bottom when `gradient_angle` is 0. The tool description says the opposite.
-- `export_preview` renders the iOS shape only. Use `render_liquid_glass` with
-  `platform: "macOS"` to see the macOS tile.
-- Pass `return_image: false` when the agent cannot display inline images, then read the PNG file.
-- Do not run `set_fill` and a render in parallel. The render can read the bundle before the fill lands.
-- An unknown parameter is ignored without an error. If all four renditions look the
-  same, check the parameter name (`rendition`, not `appearance`).
-
-## Design notes
-
-- Check each concept against well-known icons. A white rounded rectangle with a play
-  triangle reads as YouTube; change the proportions or add a second element.
-- One idea per icon. If the glyph needs explaining, it is too busy.
-- A light-to-dark top-to-bottom gradient in the brand hue gives the glass something to refract.
-- Judge the contact sheet at small size too. Details thinner than about 60 units on
-  the 1024 canvas disappear at 32 px.
-- A detailed backdrop works when one large object sits on top of it. Code lines turned
-  into texture at 32 px while the magnifying glass over them still read clearly.
-- Size the main object so its label (letters in a lens, for example) is readable at 64 px.
-- A chain reads best as face-on link, edge-on link (a plain bar), face-on link.
-  Two overlapping face-on links merge into a blob.
-- A shape that overflows a disc must contrast with the tile as well as with the disc.
-- For steel, use a four-stop diagonal gradient: `#E6EAF0`, `#8A94A4` at 42%,
-  `#C3CAD5` at 56%, `#565F6E`.
-- Ask the user for reference images early. A photo of the real object changed the
-  concept more than three rounds of abstract options did.
-- Show every round as a four-rendition sheet with a recommendation and a short list of
-  choices. Offer "apply and finish" beside "apply and show me again".
-
-## Contact sheet
-
-Four renditions in a row, then 128, 64 and 32 px versions of `Default` underneath:
-
-```bash
-magick montage Default.png Dark.png TintedLight.png TintedDark.png \
-  -tile 4x1 -geometry 380x380+8+8 -background '#808890' row.png
-for s in 128 64 32; do magick Default.png -resize ${s}x${s} s$s.png; done
-magick -background '#808890' -gravity center s128.png s64.png s32.png \
-  +smush 40 -extent 1584x160 small.png
-magick row.png small.png -append -depth 8 -strip sheet.png
-```
-
-For a concept round, put one `Default` render per concept in the top row instead.
+- The bundle's `Assets/` folder is the source of truth for layers. Do not keep a second
+  copy of the SVGs.
+- Commit the contact sheet and the marketing PNG, not every 1024 px render.
+- ImageMagick writes composites as 16-bit PNGs. `scripts/contact-sheet.sh` already adds
+  `-depth 8 -strip`; add it to any other `magick` command. A 1024 px icon went from
+  1.8 MB to 0.5 MB.

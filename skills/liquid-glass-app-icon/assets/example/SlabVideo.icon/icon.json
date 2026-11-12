@@ -1,0 +1,107 @@
+{
+  "groups": [
+    {
+      "layers": [
+        {
+          "image-name": "live.svg",
+          "name": "live",
+          "opacity": 1,
+          "blend-mode": "normal",
+          "glass": false,
+          "position": {
+            "scale": 1,
+            "translation-in-points": [0, 0]
+          },
+          "fill-specializations": [
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "srgb:0.00000,0.00000,0.00000,1.00000"
+              }
+            }
+          ]
+        }
+      ],
+      "name": "live",
+      "specular": false,
+      "shadow": {
+        "kind": "none",
+        "opacity": 0
+      },
+      "blur-material": null,
+      "translucency": {
+        "enabled": false,
+        "value": 0
+      }
+    },
+    {
+      "layers": [
+        {
+          "image-name": "foreground.svg",
+          "name": "glyph",
+          "glass": true,
+          "position": {
+            "scale": 1,
+            "translation-in-points": [0, 0]
+          }
+        }
+      ],
+      "name": "Foreground",
+      "specular": true,
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "blur-material": null,
+      "translucency": {
+        "enabled": true,
+        "value": 0.3
+      }
+    },
+    {
+      "layers": [
+        {
+          "image-name": "back.svg",
+          "name": "back",
+          "opacity": 0.6,
+          "blend-mode": "normal",
+          "glass": true,
+          "position": {
+            "scale": 1,
+            "translation-in-points": [0, 0]
+          }
+        }
+      ],
+      "name": "back",
+      "specular": true,
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.4
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.5
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": "shared",
+    "circles": ["watchOS"]
+  },
+  "fill": {
+    "linear-gradient": [
+      "srgb:0.18039,0.20784,0.25882,1.00000",
+      "srgb:0.05098,0.06275,0.08235,1.00000"
+    ],
+    "orientation": {
+      "start": {
+        "x": 0.5,
+        "y": 1
+      },
+      "stop": {
+        "x": 0.5,
+        "y": 0
+      }
+    }
+  }
+}

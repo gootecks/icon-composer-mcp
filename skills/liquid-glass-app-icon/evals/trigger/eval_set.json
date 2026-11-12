@@ -1,0 +1,82 @@
+[
+  {
+    "query": "my mac app still has the blank default icon in the dock lol. it's a swiftui pomodoro timer called Tomato, can you give it something decent before I post it on r/macapps",
+    "should_trigger": true
+  },
+  {
+    "query": "need a new AppIcon for the iOS 26 build of our habit tracker. brand color is #7C3AED, logo svg is at design/logo.svg. should look right in dark and tinted too",
+    "should_trigger": true
+  },
+  {
+    "query": "the icon for SlabVideo looks washed out when I switch macOS to dark mode, the red record dot goes pink. can you fix that",
+    "should_trigger": true
+  },
+  {
+    "query": "actool is failing my build with 'Too many visible groups' on Resources/Clipper.icon \u2014 what do I do",
+    "should_trigger": true
+  },
+  {
+    "query": "I've got Icon Composer open and a .icon file but I'd rather you just do it. turn assets/glyph.svg into a proper liquid glass icon for my menu bar app",
+    "should_trigger": true
+  },
+  {
+    "query": "app store connect rejected my upload with ITMS-90717 invalid large app icon, something about alpha channel. how do I export the 1024 png properly from our .icon",
+    "should_trigger": true
+  },
+  {
+    "query": "we build our mac app with a shell script and swiftc, no xcodeproj. how do I get the Tahoe-style icon into the .app bundle so it shows in Finder?",
+    "should_trigger": true
+  },
+  {
+    "query": "can you sketch 3 different logo ideas for my quick look plugin's app icon and show me them side by side before we pick one",
+    "should_trigger": true
+  },
+  {
+    "query": "the tinted version of our icon on the iphone home screen loses the orange badge completely. everything is one color. any way to keep the badge visible?",
+    "should_trigger": true
+  },
+  {
+    "query": "replace the old AppIcon.appiconset in my xcode project with one of the new layered glass icons, same artwork (art/mark.svg) but make it look native on macOS 26",
+    "should_trigger": true
+  },
+  {
+    "query": "add an SF Symbol icon to the toolbar button in ContentView.swift, something like a gear for settings",
+    "should_trigger": false
+  },
+  {
+    "query": "generate favicon.ico and the apple-touch-icon pngs for my astro site from public/logo.svg",
+    "should_trigger": false
+  },
+  {
+    "query": "I want the sidebar in my SwiftUI app to use the new liquid glass material on macOS 26, how do I apply glassEffect to a custom view",
+    "should_trigger": false
+  },
+  {
+    "query": "convert all the png icons in assets/ui/ to svg and optimize them with svgo",
+    "should_trigger": false
+  },
+  {
+    "query": "make the menu bar status item icon for my app a template image so it adapts to light and dark menu bars",
+    "should_trigger": false
+  },
+  {
+    "query": "design a logo for my coffee roasting business, something minimal I can put on bags and the website",
+    "should_trigger": false
+  },
+  {
+    "query": "my electron app's windows .ico looks blurry in the taskbar, can you regenerate it with all the right sizes",
+    "should_trigger": false
+  },
+  {
+    "query": "write the App Store description and keywords for my pomodoro timer app Tomato",
+    "should_trigger": false
+  },
+  {
+    "query": "build fails with 'actool: error: The app icon set named AppIcon did not have any applicable content' after I deleted some pngs from Assets.xcassets \u2014 CI is on Xcode 15",
+    "should_trigger": false
+  },
+  {
+    "query": "create an android adaptive icon (foreground + background layers) for our flutter app from branding/mark.svg",
+    "should_trigger": false
+  }
+]
