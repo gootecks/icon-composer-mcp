@@ -63,10 +63,10 @@ export function resolveCanvasBackgroundParam(params: {
 
 export async function exportPreview(params: ExportPreviewParams): Promise<McpResult> {
   try {
-    const useIctool = !params.flat && await ictoolAvailable();
+    const useIctool = !params.flat && (await ictoolAvailable());
 
     const renditionMap: Record<string, string> = { dark: 'Dark', tinted: 'TintedLight' };
-    const rendition = params.appearance ? renditionMap[params.appearance] ?? 'Default' : 'Default';
+    const rendition = params.appearance ? (renditionMap[params.appearance] ?? 'Default') : 'Default';
 
     let buffer: Buffer;
     let renderer: string;
@@ -159,11 +159,11 @@ export async function exportPreview(params: ExportPreviewParams): Promise<McpRes
               }
             }
             await saveManifest(params.bundle_path, manifest);
-            await fs.unlink(tmpLarge).catch(() => { });
+            await fs.unlink(tmpLarge).catch(() => {});
           }
         }
       } finally {
-        await fs.unlink(tmpPath).catch(() => { });
+        await fs.unlink(tmpPath).catch(() => {});
       }
       renderer = 'liquid-glass';
     } else {
@@ -182,7 +182,10 @@ export async function exportPreview(params: ExportPreviewParams): Promise<McpRes
     await fs.writeFile(params.output_path, buffer);
 
     const content: McpContentBlock[] = [
-      { type: 'text', text: `Exported preview to ${params.output_path} (${params.size}x${params.size}, ${renderer}, zoom: ${params.zoom}x, bg: ${params.canvas_bg_image ? 'image' : params.canvas_bg_color ?? params.canvas_bg ?? 'none'})` },
+      {
+        type: 'text',
+        text: `Exported preview to ${params.output_path} (${params.size}x${params.size}, ${renderer}, zoom: ${params.zoom}x, bg: ${params.canvas_bg_image ? 'image' : (params.canvas_bg_color ?? params.canvas_bg ?? 'none')})`,
+      },
     ];
     if (params.return_image !== false && buffer.length <= MAX_INLINE_IMAGE_BYTES) {
       content.push({ type: 'image', data: buffer.toString('base64'), mimeType: 'image/png' });
@@ -196,9 +199,14 @@ export async function exportPreview(params: ExportPreviewParams): Promise<McpRes
 
 export async function renderLiquidGlass(params: RenderLiquidGlassParams): Promise<McpResult> {
   try {
-    if (!await ictoolAvailable()) {
+    if (!(await ictoolAvailable())) {
       return {
-        content: [{ type: 'text', text: 'Error: Icon Composer.app not found at /Applications/Icon Composer.app. Install it from developer.apple.com/icon-composer/' }],
+        content: [
+          {
+            type: 'text',
+            text: 'Error: Icon Composer.app not found at /Applications/Icon Composer.app. Install it from developer.apple.com/icon-composer/',
+          },
+        ],
         isError: true,
       };
     }
@@ -216,10 +224,19 @@ export async function renderLiquidGlass(params: RenderLiquidGlassParams): Promis
       tintStrength: params.tint_strength,
     });
 
-    const hasBackground = params.canvas_bg_image || params.canvas_bg_color || params.apple_preset || (params.canvas_bg && params.canvas_bg !== 'none');
+    const hasBackground =
+      params.canvas_bg_image ||
+      params.canvas_bg_color ||
+      params.apple_preset ||
+      (params.canvas_bg && params.canvas_bg !== 'none');
     if (CLEAR_RENDITIONS.has(params.rendition) && hasBackground) {
       return {
-        content: [{ type: 'text', text: `ClearLight/ClearDark renditions do not support canvas backgrounds. Apple's glass transparency effect requires a Metal GPU pipeline that isn't available via CLI. Use Default, Dark, or Tinted renditions for background compositing.` }],
+        content: [
+          {
+            type: 'text',
+            text: `ClearLight/ClearDark renditions do not support canvas backgrounds. Apple's glass transparency effect requires a Metal GPU pipeline that isn't available via CLI. Use Default, Dark, or Tinted renditions for background compositing.`,
+          },
+        ],
         isError: true,
       };
     }
@@ -237,7 +254,10 @@ export async function renderLiquidGlass(params: RenderLiquidGlassParams): Promis
     const stat = await fs.stat(params.output_path);
 
     const content: McpContentBlock[] = [
-      { type: 'text', text: `Rendered Liquid Glass preview to ${params.output_path} (${params.width}x${params.height}@${params.scale}x, ${params.rendition}, zoom: ${params.zoom}x, ${(stat.size / 1024).toFixed(1)} KB)` },
+      {
+        type: 'text',
+        text: `Rendered Liquid Glass preview to ${params.output_path} (${params.width}x${params.height}@${params.scale}x, ${params.rendition}, zoom: ${params.zoom}x, ${(stat.size / 1024).toFixed(1)} KB)`,
+      },
     ];
     if (params.return_image !== false) {
       const fileBuffer = await fs.readFile(params.output_path);
@@ -273,7 +293,7 @@ export async function exportMarketing(params: ExportMarketingParams): Promise<Mc
     let buffer = await renderPreview(manifest, assets, size);
     let renderer = 'flat';
 
-    if (!params.flat && await ictoolAvailable()) {
+    if (!params.flat && (await ictoolAvailable())) {
       const tmpPath = params.output_path + '.ictool.png';
       try {
         await renderWithIctool({
@@ -287,22 +307,24 @@ export async function exportMarketing(params: ExportMarketingParams): Promise<Mc
           .png()
           .toBuffer();
       } finally {
-        await fs.unlink(tmpPath).catch(() => { });
+        await fs.unlink(tmpPath).catch(() => {});
       }
       renderer = 'liquid-glass';
     }
 
     const fill = resolveFill(manifest);
-    const bgColor = fill && typeof fill === 'object' && 'solid' in fill
-      ? parseColorString(fill.solid)
-      : { r: 255, g: 255, b: 255 };
+    const bgColor =
+      fill && typeof fill === 'object' && 'solid' in fill ? parseColorString(fill.solid) : { r: 255, g: 255, b: 255 };
 
     buffer = await stripAlpha(buffer, bgColor);
     await fs.writeFile(params.output_path, buffer);
 
     const stat = await fs.stat(params.output_path);
     const content: McpContentBlock[] = [
-      { type: 'text', text: `Exported marketing icon to ${params.output_path} (${size}x${size}, ${renderer}, no alpha, ${(stat.size / 1024).toFixed(1)} KB)` },
+      {
+        type: 'text',
+        text: `Exported marketing icon to ${params.output_path} (${size}x${size}, ${renderer}, no alpha, ${(stat.size / 1024).toFixed(1)} KB)`,
+      },
     ];
     if (params.return_image !== false && buffer.length <= MAX_INLINE_IMAGE_BYTES) {
       content.push({ type: 'image', data: buffer.toString('base64'), mimeType: 'image/png' });

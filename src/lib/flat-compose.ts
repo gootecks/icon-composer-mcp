@@ -32,11 +32,11 @@ export function resolveSpec<T>(
   appearance: Appearance,
 ): T | undefined {
   if (appearance !== undefined) {
-    const match = specs?.find(s => s.appearance === appearance && s.idiom === undefined);
+    const match = specs?.find((s) => s.appearance === appearance && s.idiom === undefined);
     if (match) return match.value;
   }
   if (base !== undefined) return base;
-  return specs?.find(s => s.appearance === undefined && s.idiom === undefined)?.value;
+  return specs?.find((s) => s.appearance === undefined && s.idiom === undefined)?.value;
 }
 
 function gradientSvg(size: number, top: Rgba, bottom: Rgba, x1 = 0.5, y1 = 0, x2 = 0.5, y2 = 1): Buffer {
@@ -79,13 +79,21 @@ export async function resolveFlatBackground(
   if (fill === 'automatic') return { color: await automaticColor(manifest, assets) };
   if (fill === 'system-dark' || fill === 'system-light') {
     const [top, bottom] = (fill === 'system-dark' ? SYSTEM_DARK : SYSTEM_LIGHT).map(parseColorString);
-    return { image: await sharp(gradientSvg(size, top, bottom)).png().toBuffer() };
+    return {
+      image: await sharp(gradientSvg(size, top, bottom))
+        .png()
+        .toBuffer(),
+    };
   }
   if (typeof fill === 'string') return { color: parseColorString(fill) };
   if ('solid' in fill) return { color: parseColorString(fill.solid) };
   if ('automatic-gradient' in fill) {
     const base = parseColorString(fill['automatic-gradient']);
-    return { image: await sharp(gradientSvg(size, lighten(base, AUTOMATIC_GRADIENT_TOP_LIGHTEN), base)).png().toBuffer() };
+    return {
+      image: await sharp(gradientSvg(size, lighten(base, AUTOMATIC_GRADIENT_TOP_LIGHTEN), base))
+        .png()
+        .toBuffer(),
+    };
   }
   if ('linear-gradient' in fill) {
     const [a, b] = fill['linear-gradient'].map(parseColorString);
@@ -105,8 +113,12 @@ interface PlacedLayer {
 }
 
 function groupPlacement(group: Group, appearance: Appearance): Position {
-  return resolveSpec(group.position, group['position-specializations'], appearance)
-    ?? { scale: 1, 'translation-in-points': [0, 0] };
+  return (
+    resolveSpec(group.position, group['position-specializations'], appearance) ?? {
+      scale: 1,
+      'translation-in-points': [0, 0],
+    }
+  );
 }
 
 // icon.json lists the top group and the top layer first, so painting runs in reverse
@@ -138,9 +150,10 @@ export function collectVisibleLayers(manifest: IconManifest, appearance: Appeara
 async function rasterizeLayer(asset: Buffer, layerPx: number, opacity: number): Promise<Buffer> {
   const meta = await sharp(asset).metadata();
   const longest = Math.max(meta.width ?? 1, meta.height ?? 1);
-  const input = meta.format === 'svg'
-    ? sharp(asset, { density: Math.min(100000, Math.max(1, (72 * layerPx) / longest)) })
-    : sharp(asset);
+  const input =
+    meta.format === 'svg'
+      ? sharp(asset, { density: Math.min(100000, Math.max(1, (72 * layerPx) / longest)) })
+      : sharp(asset);
   const resized = input
     .resize(layerPx, layerPx, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
     .ensureAlpha();
@@ -149,7 +162,9 @@ async function rasterizeLayer(asset: Buffer, layerPx: number, opacity: number): 
   for (let i = 3; i < data.length; i += 4) {
     data[i] = Math.round(data[i] * opacity);
   }
-  return sharp(data, { raw: { width: info.width, height: info.height, channels: 4 } }).png().toBuffer();
+  return sharp(data, { raw: { width: info.width, height: info.height, channels: 4 } })
+    .png()
+    .toBuffer();
 }
 
 export async function buildLayerOverlays(

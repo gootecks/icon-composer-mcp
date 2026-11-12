@@ -1,7 +1,9 @@
 import { test, expect, beforeEach } from 'bun:test';
 import { _resetCache, ictoolAvailable, getIctoolVersion, CLEAR_RENDITIONS } from '../../lib/ictool';
 
-beforeEach(() => { _resetCache(); });
+beforeEach(() => {
+  _resetCache();
+});
 
 // ── CLEAR_RENDITIONS ──────────────────────────────────────────────────────────
 
@@ -113,6 +115,6 @@ test('renderWithIctool throws on invalid bundle', async () => {
   const { renderWithIctool } = await import('../../lib/ictool');
 
   await expect(
-    renderWithIctool({ bundlePath: '/nonexistent/bundle.icon', outputPath: '/tmp/out.png' })
+    renderWithIctool({ bundlePath: '/nonexistent/bundle.icon', outputPath: '/tmp/out.png' }),
   ).rejects.toThrow();
 });

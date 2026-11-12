@@ -73,7 +73,7 @@ export async function createFixtureBundle(
     blurMaterial?: number | null;
     translucency?: { enabled: boolean; value: number };
     glyphScale?: number;
-  } = {}
+  } = {},
 ): Promise<string> {
   const { createManifest, addGroup, addLayer, writeIconBundle } = await import('../../icon-builder');
 

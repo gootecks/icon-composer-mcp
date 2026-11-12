@@ -33,7 +33,7 @@ export function hexToIconColor(hex: string, colorSpace: string = 'srgb'): string
   if (hex.length === 3) {
     hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
   }
-  if ((hex.length !== 6) || !/^[0-9a-fA-F]{6}$/.test(hex)) {
+  if (hex.length !== 6 || !/^[0-9a-fA-F]{6}$/.test(hex)) {
     return `${colorSpace}:0.00000,0.00000,0.00000,1.00000`;
   }
   const r = parseInt(hex.slice(0, 2), 16) / 255;
@@ -115,11 +115,11 @@ export function resolveFill(manifest: IconManifest, appearance?: 'dark' | 'tinte
   if (specs && specs.length > 0) {
     // Try exact appearance match first
     if (appearance !== undefined) {
-      const match = specs.find(s => s.appearance === appearance);
+      const match = specs.find((s) => s.appearance === appearance);
       if (match) return match.value;
     }
     // Fallback to default (no appearance key)
-    const defaultSpec = specs.find(s => s.appearance === undefined);
+    const defaultSpec = specs.find((s) => s.appearance === undefined);
     if (defaultSpec) return defaultSpec.value;
   }
   return manifest.fill;

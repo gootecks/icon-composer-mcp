@@ -6,14 +6,18 @@ import { stripAlpha } from '../../lib/image-utils';
 async function makeRgbaPng(size: number = 16): Promise<Buffer> {
   return sharp({
     create: { width: size, height: size, channels: 4, background: { r: 100, g: 150, b: 200, alpha: 128 } },
-  }).png().toBuffer();
+  })
+    .png()
+    .toBuffer();
 }
 
 // Create a small opaque RGB test PNG
 async function makeRgbPng(size: number = 16): Promise<Buffer> {
   return sharp({
     create: { width: size, height: size, channels: 3, background: { r: 100, g: 150, b: 200 } },
-  }).png().toBuffer();
+  })
+    .png()
+    .toBuffer();
 }
 
 describe('stripAlpha', () => {
@@ -35,7 +39,9 @@ describe('stripAlpha', () => {
     // Create a fully transparent pixel
     const input = await sharp({
       create: { width: 1, height: 1, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
-    }).png().toBuffer();
+    })
+      .png()
+      .toBuffer();
 
     const output = await stripAlpha(input, { r: 255, g: 0, b: 0 });
     const { data, info } = await sharp(output).raw().toBuffer({ resolveWithObject: true });
@@ -43,14 +49,16 @@ describe('stripAlpha', () => {
     // Fully transparent flattened onto red should be red
     expect(info.channels).toBe(3);
     expect(data[0]).toBe(255); // R
-    expect(data[1]).toBe(0);   // G
-    expect(data[2]).toBe(0);   // B
+    expect(data[1]).toBe(0); // G
+    expect(data[2]).toBe(0); // B
   });
 
   test('defaults to white background', async () => {
     const input = await sharp({
       create: { width: 1, height: 1, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
-    }).png().toBuffer();
+    })
+      .png()
+      .toBuffer();
 
     const output = await stripAlpha(input);
     const { data } = await sharp(output).raw().toBuffer({ resolveWithObject: true });

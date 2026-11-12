@@ -2,12 +2,7 @@ import { test, expect, describe } from 'bun:test';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import sharp from 'sharp';
-import {
-  generateCheckerboard,
-  resolveCanvasBackground,
-  compositeOnBackground,
-  renderPreview,
-} from '../../lib/render';
+import { generateCheckerboard, resolveCanvasBackground, compositeOnBackground, renderPreview } from '../../lib/render';
 import { resolveFill } from '../../lib/manifest';
 import { TEST_PNG } from '../helpers/fixtures';
 import { makeTempDir, cleanTempDir, createFixtureBundle, readManifest } from '../helpers/test-helpers';
@@ -94,9 +89,7 @@ describe('resolveCanvasBackground', () => {
   });
 
   test('type:image with nonexistent path rejects', async () => {
-    await expect(
-      resolveCanvasBackground({ type: 'image', path: '/nonexistent/file.png' }, 64)
-    ).rejects.toThrow();
+    await expect(resolveCanvasBackground({ type: 'image', path: '/nonexistent/file.png' }, 64)).rejects.toThrow();
   });
 
   // Apple preset tests — only run if the background files exist
@@ -146,9 +139,7 @@ describe('renderPreview', () => {
       groups: [],
       'supported-platforms': {},
       fill: { solid: 'srgb:1,1,1,1' },
-      'fill-specializations': [
-        { appearance: 'dark', value: { solid: 'srgb:0,0,0,1' } },
-      ],
+      'fill-specializations': [{ appearance: 'dark', value: { solid: 'srgb:0,0,0,1' } }],
     };
     const assets = new Map<string, Buffer>();
     const defaultBuf = await renderPreview(manifest, assets, 4);
@@ -169,7 +160,9 @@ describe('renderPreview', () => {
   describe('flat compositing', () => {
     const SIZE = 64;
     const solidPng = (r: number, g: number, b: number) =>
-      sharp({ create: { width: SIZE, height: SIZE, channels: 4, background: { r, g, b, alpha: 1 } } }).png().toBuffer();
+      sharp({ create: { width: SIZE, height: SIZE, channels: 4, background: { r, g, b, alpha: 1 } } })
+        .png()
+        .toBuffer();
     const layer = (name: string, extra: object = {}) => ({ 'image-name': name, name, ...extra });
 
     test('first group and first layer paint on top', async () => {
@@ -179,10 +172,7 @@ describe('renderPreview', () => {
         ['blue.png', await solidPng(0, 0, 255)],
       ]);
       const manifest: IconManifest = {
-        groups: [
-          { layers: [layer('red.png'), layer('green.png')] },
-          { layers: [layer('blue.png')] },
-        ],
+        groups: [{ layers: [layer('red.png'), layer('green.png')] }, { layers: [layer('blue.png')] }],
         'supported-platforms': {},
       };
       const { data, width } = await getPixels(await renderPreview(manifest, assets, SIZE));
@@ -218,7 +208,13 @@ describe('renderPreview', () => {
         const dir = await makeTempDir('render-gradient-');
         try {
           const bundle = await createFixtureBundle(dir, 'grad');
-          await setFill({ bundle_path: bundle, fill_type: 'gradient', color: '#FF0000', color2: '#0000FF', gradient_angle: angle });
+          await setFill({
+            bundle_path: bundle,
+            fill_type: 'gradient',
+            color: '#FF0000',
+            color2: '#0000FF',
+            gradient_angle: angle,
+          });
           const manifest = await readManifest(bundle);
           manifest.groups = [];
           return getPixels(await renderPreview(manifest, new Map(), SIZE));
@@ -264,7 +260,9 @@ describe('renderPreview', () => {
     });
 
     test('layer with 1024 viewBox at scale 1 covers the whole tile', async () => {
-      const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><rect width="1024" height="1024" fill="#ff0000"/></svg>');
+      const svg = Buffer.from(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><rect width="1024" height="1024" fill="#ff0000"/></svg>',
+      );
       const assets = new Map([['full.svg', svg]]);
       const position = (scale: number) => ({ scale, 'translation-in-points': [0, 0] as [number, number] });
       const manifest: IconManifest = {
@@ -314,9 +312,7 @@ describe('resolveFill', () => {
       groups: [],
       'supported-platforms': {},
       fill: { solid: 'srgb:1,1,1,1' },
-      'fill-specializations': [
-        { appearance: 'dark', value: { solid: 'srgb:0,0,0,1' } },
-      ],
+      'fill-specializations': [{ appearance: 'dark', value: { solid: 'srgb:0,0,0,1' } }],
     };
     expect(resolveFill(manifest, 'dark')).toEqual({ solid: 'srgb:0,0,0,1' });
   });
@@ -326,9 +322,7 @@ describe('resolveFill', () => {
       groups: [],
       'supported-platforms': {},
       fill: { solid: 'srgb:1,1,1,1' },
-      'fill-specializations': [
-        { appearance: 'dark', value: { solid: 'srgb:0,0,0,1' } },
-      ],
+      'fill-specializations': [{ appearance: 'dark', value: { solid: 'srgb:0,0,0,1' } }],
     };
     expect(resolveFill(manifest, 'tinted')).toEqual({ solid: 'srgb:1,1,1,1' });
   });

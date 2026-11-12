@@ -13,11 +13,7 @@ export {
   type AddLayerOptions,
 } from './lib/manifest';
 
-export {
-  readIconBundle,
-  writeIconBundle,
-  saveManifest,
-} from './lib/bundle';
+export { readIconBundle, writeIconBundle, saveManifest } from './lib/bundle';
 
 export {
   generateCheckerboard,

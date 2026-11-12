@@ -7,13 +7,7 @@ import {
   responseText,
   isErrorResult,
 } from '../helpers/test-helpers';
-import {
-  setGlassEffects,
-  setAppearances,
-  setFill,
-  setLayerPosition,
-  toggleFx,
-} from '../../lib/ops-glass';
+import { setGlassEffects, setAppearances, setFill, setLayerPosition, toggleFx } from '../../lib/ops-glass';
 
 let tmpDir: string;
 

@@ -7,16 +7,36 @@ export type ColorSpace = 'srgb' | 'display-p3' | 'extended-gray';
 export type ColorString = string;
 
 export type BlendMode =
-  | 'normal' | 'multiply' | 'screen' | 'overlay'
-  | 'darken' | 'lighten' | 'color-dodge' | 'color-burn'
-  | 'soft-light' | 'hard-light' | 'difference' | 'exclusion'
-  | 'plus-darker' | 'plus-lighter';
+  | 'normal'
+  | 'multiply'
+  | 'screen'
+  | 'overlay'
+  | 'darken'
+  | 'lighten'
+  | 'color-dodge'
+  | 'color-burn'
+  | 'soft-light'
+  | 'hard-light'
+  | 'difference'
+  | 'exclusion'
+  | 'plus-darker'
+  | 'plus-lighter';
 
 const VALID_BLEND_MODES: ReadonlySet<string> = new Set<BlendMode>([
-  'normal', 'multiply', 'screen', 'overlay',
-  'darken', 'lighten', 'color-dodge', 'color-burn',
-  'soft-light', 'hard-light', 'difference', 'exclusion',
-  'plus-darker', 'plus-lighter',
+  'normal',
+  'multiply',
+  'screen',
+  'overlay',
+  'darken',
+  'lighten',
+  'color-dodge',
+  'color-burn',
+  'soft-light',
+  'hard-light',
+  'difference',
+  'exclusion',
+  'plus-darker',
+  'plus-lighter',
 ]);
 
 /** Validate a string as a BlendMode, returning 'normal' if invalid. */
@@ -119,9 +139,7 @@ export interface IconManifest {
 
 // ── Standard MCP result type ──
 
-export type McpContentBlock =
-  | { type: 'text'; text: string }
-  | { type: 'image'; data: string; mimeType: string };
+export type McpContentBlock = { type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string };
 
 export interface McpResult {
   content: McpContentBlock[];

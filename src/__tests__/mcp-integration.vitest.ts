@@ -74,17 +74,29 @@ describe('discovery', () => {
 describe('create_icon', () => {
   test('creates bundle from PNG', async () => {
     const png = await writePng('glyph.png');
-    const result = await client.callTool({ name: 'create_icon', arguments: {
-      foreground_path: png, output_dir: tmpDir, bundle_name: 'McpTest', bg_color: '#0A66C2',
-    } });
+    const result = await client.callTool({
+      name: 'create_icon',
+      arguments: {
+        foreground_path: png,
+        output_dir: tmpDir,
+        bundle_name: 'McpTest',
+        bg_color: '#0A66C2',
+      },
+    });
     expect(result.isError).toBeFalsy();
     expect(text(result)).toContain('Created .icon bundle');
   });
 
   test('error on missing file', async () => {
-    const result = await client.callTool({ name: 'create_icon', arguments: {
-      foreground_path: '/nonexistent.png', output_dir: tmpDir, bundle_name: 'Bad', bg_color: '#000',
-    } });
+    const result = await client.callTool({
+      name: 'create_icon',
+      arguments: {
+        foreground_path: '/nonexistent.png',
+        output_dir: tmpDir,
+        bundle_name: 'Bad',
+        bg_color: '#000',
+      },
+    });
     expect(result.isError).toBe(true);
   });
 });
@@ -92,9 +104,12 @@ describe('create_icon', () => {
 // ── read_icon ──
 
 test('read_icon returns manifest and assets', async () => {
-  const result = await client.callTool({ name: 'read_icon', arguments: {
-    bundle_path: path.join(tmpDir, 'McpTest.icon'),
-  } });
+  const result = await client.callTool({
+    name: 'read_icon',
+    arguments: {
+      bundle_path: path.join(tmpDir, 'McpTest.icon'),
+    },
+  });
   expect(result.isError).toBeFalsy();
   expect(text(result)).toContain('Manifest:');
 });
@@ -103,10 +118,15 @@ test('read_icon returns manifest and assets', async () => {
 
 test('add_layer_to_icon adds layer', async () => {
   const png = await writePng('overlay.png');
-  const result = await client.callTool({ name: 'add_layer_to_icon', arguments: {
-    bundle_path: path.join(tmpDir, 'McpTest.icon'),
-    image_path: png, layer_name: 'overlay', group_index: 0,
-  } });
+  const result = await client.callTool({
+    name: 'add_layer_to_icon',
+    arguments: {
+      bundle_path: path.join(tmpDir, 'McpTest.icon'),
+      image_path: png,
+      layer_name: 'overlay',
+      group_index: 0,
+    },
+  });
   expect(result.isError).toBeFalsy();
   expect(text(result)).toContain('Added layer');
 });
@@ -114,53 +134,84 @@ test('add_layer_to_icon adds layer', async () => {
 // ── set_fill ──
 
 test('set_fill solid', async () => {
-  const r = await client.callTool({ name: 'set_fill', arguments: {
-    bundle_path: path.join(tmpDir, 'McpTest.icon'), fill_type: 'solid', color: '#FF6B35',
-  } });
+  const r = await client.callTool({
+    name: 'set_fill',
+    arguments: {
+      bundle_path: path.join(tmpDir, 'McpTest.icon'),
+      fill_type: 'solid',
+      color: '#FF6B35',
+    },
+  });
   expect(r.isError).toBeFalsy();
 });
 
 // ── set_glass_effects ──
 
 test('set_glass_effects', async () => {
-  const r = await client.callTool({ name: 'set_glass_effects', arguments: {
-    bundle_path: path.join(tmpDir, 'McpTest.icon'), group_index: 0,
-    specular: true, shadow_kind: 'layer-color', shadow_opacity: 0.5,
-  } });
+  const r = await client.callTool({
+    name: 'set_glass_effects',
+    arguments: {
+      bundle_path: path.join(tmpDir, 'McpTest.icon'),
+      group_index: 0,
+      specular: true,
+      shadow_kind: 'layer-color',
+      shadow_opacity: 0.5,
+    },
+  });
   expect(r.isError).toBeFalsy();
 });
 
 // ── set_appearances ──
 
 test('set_appearances dark mode', async () => {
-  const r = await client.callTool({ name: 'set_appearances', arguments: {
-    bundle_path: path.join(tmpDir, 'McpTest.icon'), target: 'fill', appearance: 'dark', bg_color: '#1A1A2E',
-  } });
+  const r = await client.callTool({
+    name: 'set_appearances',
+    arguments: {
+      bundle_path: path.join(tmpDir, 'McpTest.icon'),
+      target: 'fill',
+      appearance: 'dark',
+      bg_color: '#1A1A2E',
+    },
+  });
   expect(r.isError).toBeFalsy();
 });
 
 // ── set_layer_position ──
 
 test('set_layer_position', async () => {
-  const r = await client.callTool({ name: 'set_layer_position', arguments: {
-    bundle_path: path.join(tmpDir, 'McpTest.icon'), target: 'layer',
-    group_index: 0, layer_index: 0, scale: 0.8,
-  } });
+  const r = await client.callTool({
+    name: 'set_layer_position',
+    arguments: {
+      bundle_path: path.join(tmpDir, 'McpTest.icon'),
+      target: 'layer',
+      group_index: 0,
+      layer_index: 0,
+      scale: 0.8,
+    },
+  });
   expect(r.isError).toBeFalsy();
 });
 
 // ── toggle_fx ──
 
 test('toggle_fx disable then enable', async () => {
-  const r1 = await client.callTool({ name: 'toggle_fx', arguments: {
-    bundle_path: path.join(tmpDir, 'McpTest.icon'), enabled: false,
-  } });
+  const r1 = await client.callTool({
+    name: 'toggle_fx',
+    arguments: {
+      bundle_path: path.join(tmpDir, 'McpTest.icon'),
+      enabled: false,
+    },
+  });
   expect(r1.isError).toBeFalsy();
   expect(text(r1).toLowerCase()).toContain('disabled');
 
-  const r2 = await client.callTool({ name: 'toggle_fx', arguments: {
-    bundle_path: path.join(tmpDir, 'McpTest.icon'), enabled: true,
-  } });
+  const r2 = await client.callTool({
+    name: 'toggle_fx',
+    arguments: {
+      bundle_path: path.join(tmpDir, 'McpTest.icon'),
+      enabled: true,
+    },
+  });
   expect(text(r2).toLowerCase()).toContain('enabled');
 });
 
@@ -168,9 +219,15 @@ test('toggle_fx disable then enable', async () => {
 
 test('export_preview flat', async () => {
   const out = path.join(tmpDir, 'preview.png');
-  const r = await client.callTool({ name: 'export_preview', arguments: {
-    bundle_path: path.join(tmpDir, 'McpTest.icon'), output_path: out, size: 256, flat: true,
-  } });
+  const r = await client.callTool({
+    name: 'export_preview',
+    arguments: {
+      bundle_path: path.join(tmpDir, 'McpTest.icon'),
+      output_path: out,
+      size: 256,
+      flat: true,
+    },
+  });
   expect(r.isError).toBeFalsy();
   const stat = await fs.stat(out);
   expect(stat.size).toBeGreaterThan(0);
@@ -180,9 +237,15 @@ test('export_preview flat', async () => {
 
 test('export_preview returns inline image by default', async () => {
   const out = path.join(tmpDir, 'preview-inline.png');
-  const r = await client.callTool({ name: 'export_preview', arguments: {
-    bundle_path: path.join(tmpDir, 'McpTest.icon'), output_path: out, size: 256, flat: true,
-  } });
+  const r = await client.callTool({
+    name: 'export_preview',
+    arguments: {
+      bundle_path: path.join(tmpDir, 'McpTest.icon'),
+      output_path: out,
+      size: 256,
+      flat: true,
+    },
+  });
   expect(r.isError).toBeFalsy();
   expect(r.content.length).toBeGreaterThanOrEqual(2);
   const imageBlock = r.content[1] as any;
@@ -193,9 +256,16 @@ test('export_preview returns inline image by default', async () => {
 
 test('export_preview return_image=false omits image', async () => {
   const out = path.join(tmpDir, 'preview-no-inline.png');
-  const r = await client.callTool({ name: 'export_preview', arguments: {
-    bundle_path: path.join(tmpDir, 'McpTest.icon'), output_path: out, size: 256, flat: true, return_image: false,
-  } });
+  const r = await client.callTool({
+    name: 'export_preview',
+    arguments: {
+      bundle_path: path.join(tmpDir, 'McpTest.icon'),
+      output_path: out,
+      size: 256,
+      flat: true,
+      return_image: false,
+    },
+  });
   expect(r.isError).toBeFalsy();
   expect(r.content.length).toBe(1);
   expect(r.content[0].type).toBe('text');
@@ -205,18 +275,27 @@ test('export_preview return_image=false omits image', async () => {
 
 test('export_marketing', async () => {
   const out = path.join(tmpDir, 'marketing.png');
-  const r = await client.callTool({ name: 'export_marketing', arguments: {
-    bundle_path: path.join(tmpDir, 'McpTest.icon'), output_path: out,
-  } });
+  const r = await client.callTool({
+    name: 'export_marketing',
+    arguments: {
+      bundle_path: path.join(tmpDir, 'McpTest.icon'),
+      output_path: out,
+    },
+  });
   expect(r.isError).toBeFalsy();
   expect(text(r)).toContain('no alpha');
 });
 
 test('export_marketing returns inline image', async () => {
   const out = path.join(tmpDir, 'marketing-inline.png');
-  const r = await client.callTool({ name: 'export_marketing', arguments: {
-    bundle_path: path.join(tmpDir, 'McpTest.icon'), output_path: out, size: 256,
-  } });
+  const r = await client.callTool({
+    name: 'export_marketing',
+    arguments: {
+      bundle_path: path.join(tmpDir, 'McpTest.icon'),
+      output_path: out,
+      size: 256,
+    },
+  });
   expect(r.isError).toBeFalsy();
   expect(r.content.length).toBeGreaterThanOrEqual(2);
   const imageBlock = r.content[1] as any;
@@ -227,10 +306,16 @@ test('export_marketing returns inline image', async () => {
 // ── remove_layer ──
 
 test('remove_layer', async () => {
-  const r = await client.callTool({ name: 'remove_layer', arguments: {
-    bundle_path: path.join(tmpDir, 'McpTest.icon'), target: 'layer',
-    group_index: 0, layer_index: 1, cleanup_assets: true,
-  } });
+  const r = await client.callTool({
+    name: 'remove_layer',
+    arguments: {
+      bundle_path: path.join(tmpDir, 'McpTest.icon'),
+      target: 'layer',
+      group_index: 0,
+      layer_index: 1,
+      cleanup_assets: true,
+    },
+  });
   expect(r.isError).toBeFalsy();
   expect(text(r)).toContain('Removed layer');
 });
@@ -239,28 +324,48 @@ test('remove_layer', async () => {
 
 describe('set_appearances specializations', () => {
   test('group blur-material for dark', async () => {
-    const r = await client.callTool({ name: 'set_appearances', arguments: {
-      bundle_path: path.join(tmpDir, 'McpTest.icon'), target: 'group',
-      group_index: 0, appearance: 'dark', blur_material: 0.6,
-    } });
+    const r = await client.callTool({
+      name: 'set_appearances',
+      arguments: {
+        bundle_path: path.join(tmpDir, 'McpTest.icon'),
+        target: 'group',
+        group_index: 0,
+        appearance: 'dark',
+        blur_material: 0.6,
+      },
+    });
     expect(r.isError).toBeFalsy();
     expect(text(r)).toContain('dark');
   });
 
   test('layer opacity for dark', async () => {
-    const r = await client.callTool({ name: 'set_appearances', arguments: {
-      bundle_path: path.join(tmpDir, 'McpTest.icon'), target: 'layer',
-      group_index: 0, layer_index: 0, appearance: 'dark', opacity: 0.5,
-    } });
+    const r = await client.callTool({
+      name: 'set_appearances',
+      arguments: {
+        bundle_path: path.join(tmpDir, 'McpTest.icon'),
+        target: 'layer',
+        group_index: 0,
+        layer_index: 0,
+        appearance: 'dark',
+        opacity: 0.5,
+      },
+    });
     expect(r.isError).toBeFalsy();
     expect(text(r)).toContain('dark');
   });
 
   test('layer blend-mode for tinted', async () => {
-    const r = await client.callTool({ name: 'set_appearances', arguments: {
-      bundle_path: path.join(tmpDir, 'McpTest.icon'), target: 'layer',
-      group_index: 0, layer_index: 0, appearance: 'tinted', blend_mode: 'screen',
-    } });
+    const r = await client.callTool({
+      name: 'set_appearances',
+      arguments: {
+        bundle_path: path.join(tmpDir, 'McpTest.icon'),
+        target: 'layer',
+        group_index: 0,
+        layer_index: 0,
+        appearance: 'tinted',
+        blend_mode: 'screen',
+      },
+    });
     expect(r.isError).toBeFalsy();
     expect(text(r)).toContain('tinted');
   });
@@ -270,10 +375,18 @@ describe('set_appearances specializations', () => {
 
 test('render_liquid_glass renders or reports missing', async () => {
   const out = path.join(tmpDir, 'glass.png');
-  const r = await client.callTool({ name: 'render_liquid_glass', arguments: {
-    bundle_path: path.join(tmpDir, 'McpTest.icon'), output_path: out,
-    platform: 'iOS', rendition: 'Default', width: 256, height: 256, scale: 1,
-  } });
+  const r = await client.callTool({
+    name: 'render_liquid_glass',
+    arguments: {
+      bundle_path: path.join(tmpDir, 'McpTest.icon'),
+      output_path: out,
+      platform: 'iOS',
+      rendition: 'Default',
+      width: 256,
+      height: 256,
+      scale: 1,
+    },
+  });
   const t = text(r);
   expect(t.includes('Rendered Liquid Glass') || t.includes('Icon Composer.app')).toBe(true);
 });

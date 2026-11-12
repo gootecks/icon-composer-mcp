@@ -8,8 +8,5 @@ export async function stripAlpha(
   buffer: Buffer,
   backgroundColor: { r: number; g: number; b: number } = { r: 255, g: 255, b: 255 },
 ): Promise<Buffer> {
-  return sharp(buffer)
-    .flatten({ background: backgroundColor })
-    .png()
-    .toBuffer();
+  return sharp(buffer).flatten({ background: backgroundColor }).png().toBuffer();
 }

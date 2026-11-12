@@ -65,7 +65,7 @@ test('renderPreview uses dark background when appearance=dark', async () => {
   // 1x1 PNG (from existing test suite)
   const whitePng = Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
-    'base64'
+    'base64',
   );
   const m = createManifest({ fill: '#FFFFFF', darkFill: '#FF0000' });
   const g = addGroup(m, { specular: false });
@@ -110,7 +110,7 @@ test('remove layer by index deletes layer and cleans up asset', async () => {
 
   const testPng = Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
-    'base64'
+    'base64',
   );
   const m = createManifest({ fill: '#000000' });
   const g = addGroup(m, { name: 'FG' });
@@ -128,7 +128,7 @@ test('remove layer by index deletes layer and cleans up asset', async () => {
   manifest.groups[0].layers.splice(0, 1);
 
   // Clean up orphaned asset
-  const stillReferenced = new Set(manifest.groups[0].layers.map(l => l['image-name']));
+  const stillReferenced = new Set(manifest.groups[0].layers.map((l) => l['image-name']));
   if (!stillReferenced.has(removedImage)) {
     await fs.unlink(path.join(bundlePath, 'Assets', removedImage)).catch(() => {});
   }
@@ -150,7 +150,7 @@ test('remove group deletes all its layers and assets', async () => {
 
   const testPng = Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
-    'base64'
+    'base64',
   );
   const m = createManifest({ fill: '#000000' });
   const g1 = addGroup(m, { name: 'BG' });
@@ -165,7 +165,7 @@ test('remove group deletes all its layers and assets', async () => {
 
   // Remove group 0 (BG)
   const { manifest } = await readIconBundle(bundlePath);
-  const removedImages = manifest.groups[0].layers.map(l => l['image-name']);
+  const removedImages = manifest.groups[0].layers.map((l) => l['image-name']);
   manifest.groups.splice(0, 1);
 
   const stillReferenced = new Set<string>();
@@ -194,7 +194,7 @@ test('shared asset survives when another layer still references it', async () =>
 
   const testPng = Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
-    'base64'
+    'base64',
   );
   const m = createManifest({ fill: '#000000' });
   const g = addGroup(m, { name: 'FG' });
@@ -208,7 +208,7 @@ test('shared asset survives when another layer still references it', async () =>
   // Remove layer 0 — shared.png should survive
   const { manifest } = await readIconBundle(bundlePath);
   manifest.groups[0].layers.splice(0, 1);
-  const stillReferenced = new Set(manifest.groups[0].layers.map(l => l['image-name']));
+  const stillReferenced = new Set(manifest.groups[0].layers.map((l) => l['image-name']));
   // Only delete if no remaining reference
   if (!stillReferenced.has('shared.png')) {
     await fs.unlink(path.join(bundlePath, 'Assets', 'shared.png')).catch(() => {});
@@ -248,7 +248,7 @@ test('writeIconBundle and readIconBundle roundtrip', async () => {
   // Create a tiny 1x1 PNG
   const testPng = Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
-    'base64'
+    'base64',
   );
   const assets = new Map<string, Buffer>();
   assets.set('test.png', testPng);

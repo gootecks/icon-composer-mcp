@@ -2,20 +2,9 @@ import { test, expect, describe, beforeEach, afterEach } from 'bun:test';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import sharp from 'sharp';
-import {
-  resolveCanvasBackgroundParam,
-  exportPreview,
-  renderLiquidGlass,
-  exportMarketing,
-} from '../../lib/ops-render';
+import { resolveCanvasBackgroundParam, exportPreview, renderLiquidGlass, exportMarketing } from '../../lib/ops-render';
 import { ictoolAvailable } from '../../lib/ictool';
-import {
-  makeTempDir,
-  cleanTempDir,
-  createFixtureBundle,
-  responseText,
-  isErrorResult,
-} from '../helpers/test-helpers';
+import { makeTempDir, cleanTempDir, createFixtureBundle, responseText, isErrorResult } from '../helpers/test-helpers';
 
 // --- resolveCanvasBackgroundParam ---
 
@@ -376,7 +365,7 @@ describe('exportMarketing', () => {
   });
 
   test('uses Liquid Glass by default and stays opaque; flat skips it', async () => {
-    if (!await ictoolAvailable()) return; // skip
+    if (!(await ictoolAvailable())) return; // skip
 
     const bundlePath = await createFixtureBundle(tmpDir, 'marketing-glass');
     const glassPath = path.join(tmpDir, 'glass.png');

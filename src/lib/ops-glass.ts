@@ -169,34 +169,40 @@ export async function setAppearances(params: SetAppearancesParams): Promise<McpR
 
       if (params.specular !== undefined) {
         group['specular-specializations'] = upsertSpecialization(
-          group['specular-specializations'], params.appearance, params.specular,
+          group['specular-specializations'],
+          params.appearance,
+          params.specular,
         );
       }
 
       if (params.shadow_kind !== undefined || params.shadow_opacity !== undefined) {
-        group['shadow-specializations'] = upsertSpecialization(
-          group['shadow-specializations'], params.appearance, {
-            kind: params.shadow_kind ?? 'layer-color',
-            opacity: params.shadow_opacity ?? 0.5,
-          },
-        );
+        group['shadow-specializations'] = upsertSpecialization(group['shadow-specializations'], params.appearance, {
+          kind: params.shadow_kind ?? 'layer-color',
+          opacity: params.shadow_opacity ?? 0.5,
+        });
       }
 
       if (params.blur_material !== undefined) {
         group['blur-material-specializations'] = upsertSpecialization(
-          group['blur-material-specializations'], params.appearance, params.blur_material,
+          group['blur-material-specializations'],
+          params.appearance,
+          params.blur_material,
         );
       }
 
       if (params.opacity !== undefined) {
         group['opacity-specializations'] = upsertSpecialization(
-          group['opacity-specializations'], params.appearance, params.opacity,
+          group['opacity-specializations'],
+          params.appearance,
+          params.opacity,
         );
       }
 
       if (params.translucency_enabled !== undefined || params.translucency_value !== undefined) {
         group['translucency-specializations'] = upsertSpecialization(
-          group['translucency-specializations'], params.appearance, {
+          group['translucency-specializations'],
+          params.appearance,
+          {
             enabled: params.translucency_enabled ?? group.translucency?.enabled ?? false,
             value: params.translucency_value ?? group.translucency?.value ?? 0.4,
           },
@@ -205,21 +211,25 @@ export async function setAppearances(params: SetAppearancesParams): Promise<McpR
 
       if (params.hidden !== undefined) {
         group['hidden-specializations'] = upsertSpecialization(
-          group['hidden-specializations'], params.appearance, params.hidden,
+          group['hidden-specializations'],
+          params.appearance,
+          params.hidden,
         );
       }
 
-      if (params.position_scale !== undefined || params.position_offset_x !== undefined || params.position_offset_y !== undefined) {
+      if (
+        params.position_scale !== undefined ||
+        params.position_offset_x !== undefined ||
+        params.position_offset_y !== undefined
+      ) {
         const currentPos = group.position ?? { scale: 1.0, 'translation-in-points': [0, 0] as [number, number] };
-        group['position-specializations'] = upsertSpecialization(
-          group['position-specializations'], params.appearance, {
-            scale: params.position_scale ?? currentPos.scale,
-            'translation-in-points': [
-              params.position_offset_x ?? currentPos['translation-in-points'][0],
-              params.position_offset_y ?? currentPos['translation-in-points'][1],
-            ],
-          },
-        );
+        group['position-specializations'] = upsertSpecialization(group['position-specializations'], params.appearance, {
+          scale: params.position_scale ?? currentPos.scale,
+          'translation-in-points': [
+            params.position_offset_x ?? currentPos['translation-in-points'][0],
+            params.position_offset_y ?? currentPos['translation-in-points'][1],
+          ],
+        });
       }
     }
 
@@ -237,39 +247,49 @@ export async function setAppearances(params: SetAppearancesParams): Promise<McpR
 
       if (params.opacity !== undefined) {
         layer['opacity-specializations'] = upsertSpecialization(
-          layer['opacity-specializations'], params.appearance, params.opacity,
+          layer['opacity-specializations'],
+          params.appearance,
+          params.opacity,
         );
       }
 
       if (params.blend_mode !== undefined) {
         layer['blend-mode-specializations'] = upsertSpecialization(
-          layer['blend-mode-specializations'], params.appearance, toBlendMode(params.blend_mode),
+          layer['blend-mode-specializations'],
+          params.appearance,
+          toBlendMode(params.blend_mode),
         );
       }
 
       if (params.fill_color !== undefined) {
         layer['fill-specializations'] = upsertSpecialization(
-          layer['fill-specializations'], params.appearance, solidFill(params.fill_color),
+          layer['fill-specializations'],
+          params.appearance,
+          solidFill(params.fill_color),
         );
       }
 
       if (params.hidden !== undefined) {
         layer['hidden-specializations'] = upsertSpecialization(
-          layer['hidden-specializations'], params.appearance, params.hidden,
+          layer['hidden-specializations'],
+          params.appearance,
+          params.hidden,
         );
       }
 
-      if (params.position_scale !== undefined || params.position_offset_x !== undefined || params.position_offset_y !== undefined) {
+      if (
+        params.position_scale !== undefined ||
+        params.position_offset_x !== undefined ||
+        params.position_offset_y !== undefined
+      ) {
         const currentPos = layer.position ?? { scale: 1.0, 'translation-in-points': [0, 0] as [number, number] };
-        layer['position-specializations'] = upsertSpecialization(
-          layer['position-specializations'], params.appearance, {
-            scale: params.position_scale ?? currentPos.scale,
-            'translation-in-points': [
-              params.position_offset_x ?? currentPos['translation-in-points'][0],
-              params.position_offset_y ?? currentPos['translation-in-points'][1],
-            ],
-          },
-        );
+        layer['position-specializations'] = upsertSpecialization(layer['position-specializations'], params.appearance, {
+          scale: params.position_scale ?? currentPos.scale,
+          'translation-in-points': [
+            params.position_offset_x ?? currentPos['translation-in-points'][0],
+            params.position_offset_y ?? currentPos['translation-in-points'][1],
+          ],
+        });
       }
     }
 
@@ -299,10 +319,7 @@ export async function setFill(params: SetFillParams): Promise<McpResult> {
     } else if (params.fill_type === 'gradient' && params.color && params.color2) {
       const angle = (params.gradient_angle * Math.PI) / 180;
       manifest.fill = {
-        'linear-gradient': [
-          hexToIconColor(params.color),
-          hexToIconColor(params.color2),
-        ],
+        'linear-gradient': [hexToIconColor(params.color), hexToIconColor(params.color2)],
         orientation: {
           start: {
             x: 0.5 - Math.sin(angle) * 0.5,
@@ -366,11 +383,14 @@ export async function setLayerPosition(params: SetLayerPositionParams): Promise<
 
     await saveManifest(params.bundle_path, manifest);
 
-    const targetDesc = params.target === 'group'
-      ? `group ${params.group_index}`
-      : `layer ${params.layer_index ?? 0} in group ${params.group_index}`;
+    const targetDesc =
+      params.target === 'group'
+        ? `group ${params.group_index}`
+        : `layer ${params.layer_index ?? 0} in group ${params.group_index}`;
 
-    return ok(`Updated position on ${targetDesc}: scale=${params.scale ?? '(unchanged)'}, offset=(${params.offset_x ?? '(unchanged)'}, ${params.offset_y ?? '(unchanged)'})`);
+    return ok(
+      `Updated position on ${targetDesc}: scale=${params.scale ?? '(unchanged)'}, offset=(${params.offset_x ?? '(unchanged)'}, ${params.offset_y ?? '(unchanged)'})`,
+    );
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Unknown error';
     return err(`Error: ${msg}`);
@@ -403,7 +423,9 @@ export async function toggleFx(params: ToggleFxParams): Promise<McpResult> {
 
     await saveManifest(params.bundle_path, manifest);
 
-    return ok(`${params.enabled ? 'Enabled' : 'Disabled'} all FX on ${manifest.groups.length} group(s) in ${params.bundle_path}`);
+    return ok(
+      `${params.enabled ? 'Enabled' : 'Disabled'} all FX on ${manifest.groups.length} group(s) in ${params.bundle_path}`,
+    );
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Unknown error';
     return err(`Error: ${msg}`);
