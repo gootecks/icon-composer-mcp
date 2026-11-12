@@ -34,7 +34,7 @@
 - **Create `.icon` bundles** programmatically from PNG or SVG glyphs
 - **Full Liquid Glass** support: specular highlights, blur material, shadows, translucency
 - **Dark mode + appearance variants** with per-appearance fill specializations
-- **AI-agent ready**: 12 MCP tools + 3 workflow prompts with built-in instructions
+- **AI-agent ready**: 13 MCP tools + 3 workflow prompts with built-in instructions
 
 ## Installation
 
@@ -250,6 +250,7 @@ Run `icon-composer doctor` to check your setup.
 | `create`           | Create a new `.icon` bundle from a foreground image          |
 | `add-layer`        | Add a layer to an existing bundle                            |
 | `remove`           | Remove a layer or group                                      |
+| `move-layer`       | Move a layer to another or a new group                       |
 | `inspect`          | Read and display bundle contents                             |
 | `glass`            | Configure Liquid Glass effects on a group                    |
 | `appearance`       | Set dark/tinted mode overrides                               |
@@ -321,6 +322,17 @@ icon-composer add-layer <bundle_path> <image_path> --name <name> [options]
 
 ```bash
 icon-composer remove <bundle_path> --target <layer|group> --group-index <n> [--layer-index <n>]
+```
+
+</details>
+
+<details>
+<summary><b><code>move-layer</code></b> — Move a layer to another group</summary>
+
+&nbsp;
+
+```bash
+icon-composer move-layer <bundle_path> --group-index <n> --layer-index <n> [--to-group-index <n>] [--to-layer-index <n>] [--create-group] [--group-name <name>]
 ```
 
 </details>
@@ -406,8 +418,8 @@ icon-composer fill <bundle_path> --type <solid|gradient|automatic|none> [options
 | Option                 | Description                                  |
 | ---------------------- | -------------------------------------------- |
 | `--type <type>`        | `solid`, `gradient`, `automatic`, or `none`  |
-| `--color <hex>`        | Primary color (for solid or gradient bottom) |
-| `--color2 <hex>`       | Secondary color (gradient top)               |
+| `--color <hex>`        | Primary color (solid, or gradient start: top at angle 0) |
+| `--color2 <hex>`       | Secondary color (gradient end: bottom at angle 0)        |
 | `--gradient-angle <n>` | Gradient angle in degrees (default: `0`)     |
 
 </details>
@@ -529,6 +541,7 @@ icon-composer doctor
 | `create_icon`         | Create a `.icon` bundle from a foreground image and background color             |
 | `add_layer_to_icon`   | Add a new layer to an existing bundle                                            |
 | `remove_layer`        | Remove a layer or group, optionally clean up assets                              |
+| `move_layer`          | Move a layer to another group or a new group, or reorder it                      |
 | `read_icon`           | Inspect bundle manifest and assets                                               |
 | `set_glass_effects`   | Configure specular, blur, shadow, translucency                                   |
 | `set_appearances`     | Set dark/tinted mode overrides                                                   |
@@ -608,6 +621,27 @@ Remove a layer or group. `layer_index` required when `target=layer`.
 | `group_index`    | number  | yes      | —       |
 | `layer_index`    | number  | no       | —       |
 | `cleanup_assets` | boolean | no       | `true`  |
+
+</details>
+
+<details>
+<summary><b><code>move_layer</code></b></summary>
+
+&nbsp;
+
+### `move_layer`
+
+Move a layer to another group, into a new group, or reorder it. Index 0 is the top. Indices refer to the bundle before the move; an emptied source group is removed.
+
+| Parameter        | Type    | Required | Default | Description                                                              |
+| ---------------- | ------- | -------- | ------- | ------------------------------------------------------------------------ |
+| `bundle_path`    | string  | yes      | —       | Path to `.icon` bundle                                                   |
+| `group_index`    | number  | yes      | —       | Source group                                                             |
+| `layer_index`    | number  | yes      | —       | Source layer within the group                                            |
+| `to_group_index` | number  | no       | —       | Destination group; with `create_group`, insert position (default `0`)    |
+| `to_layer_index` | number  | no       | `0`     | Position in the destination group (clamped)                              |
+| `create_group`   | boolean | no       | `false` | Move into a new group                                                    |
+| `group_name`     | string  | no       | —       | Name for the new group (default: layer name)                             |
 
 </details>
 
@@ -697,8 +731,8 @@ Set background fill.
 | ---------------- | ------ | -------- | ---------------------------------------- |
 | `bundle_path`    | string | yes      | Path to bundle                           |
 | `fill_type`      | enum   | yes      | `solid`, `gradient`, `automatic`, `none` |
-| `color`          | string | no       | Hex color (solid or gradient bottom)     |
-| `color2`         | string | no       | Gradient top color                       |
+| `color`          | string | no       | Hex color (solid, or gradient start: top at angle 0) |
+| `color2`         | string | no       | Gradient end color (bottom at angle 0)   |
 | `gradient_angle` | number | no       | Angle in degrees (default: `0`)          |
 
 </details>
@@ -875,8 +909,8 @@ icon-composer render ./out/AppIcon.icon glass-preview.png
 ```
 src/lib/          Pure library (bundle, manifest, render, ictool)
 src/lib/ops-*.ts  Operations layer (MCP result format)
-src/cli.ts        CLI (Commander.js, 14 commands)
-src/server.ts     MCP server (thin wrapper, 12 tools + 3 prompts)
+src/cli.ts        CLI (Commander.js, 15 commands)
+src/server.ts     MCP server (thin wrapper, 13 tools + 3 prompts)
 ```
 
 ## Contributing

@@ -4,14 +4,17 @@
  * Resolves fill colors from <style> class definitions or inline attributes.
  */
 export function splitSvgLayers(svgContent: string): { name: string; svg: string; color: string }[] {
-  // Extract viewBox
-  const viewBoxMatch = svgContent.match(/viewBox="([^"]+)"/);
-  const viewBox = viewBoxMatch?.[1] ?? '0 0 400 400';
+  const rootTag = svgContent.match(/<svg(?=[\s>\/])[^>]*>/)?.[0] ?? '';
+  const rootAttr = (name: string) => rootTag.match(new RegExp(`\\s${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`))?.slice(1).find((v) => v !== undefined);
 
-  const widthMatch = svgContent.match(/width="([^"]+)"/);
-  const heightMatch = svgContent.match(/height="([^"]+)"/);
-  const width = widthMatch?.[1] ?? '400';
-  const height = heightMatch?.[1] ?? '400';
+  const viewBoxAttr = rootAttr('viewBox');
+  const viewBox = viewBoxAttr ?? '0 0 400 400';
+  const viewBoxSize = viewBoxAttr?.trim().split(/[\s,]+/);
+  const vbWidth = viewBoxSize?.[2];
+  const vbHeight = viewBoxSize?.[3];
+
+  const width = rootAttr('width') ?? (vbWidth && Number.isFinite(Number(vbWidth)) ? vbWidth : '400');
+  const height = rootAttr('height') ?? (vbHeight && Number.isFinite(Number(vbHeight)) ? vbHeight : '400');
 
   // Extract style class → fill mappings
   const classColors: Record<string, string> = {};

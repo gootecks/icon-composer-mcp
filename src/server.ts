@@ -5,7 +5,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
-import { createIcon, addLayerToBundle, removeFromBundle, inspectBundle } from './lib/ops-bundle';
+import { createIcon, addLayerToBundle, removeFromBundle, moveLayer, inspectBundle } from './lib/ops-bundle';
 import { setGlassEffects, setAppearances, setFill, setLayerPosition, toggleFx } from './lib/ops-glass';
 import { exportPreview, renderLiquidGlass, exportMarketing } from './lib/ops-render';
 
@@ -41,6 +41,7 @@ const server = new McpServer(
 - When the user asks to "create an icon", start with create_icon, show a preview, then iterate on glass effects and appearance.
 - Use read_icon to inspect an existing bundle before modifying it.
 - set_layer_position adjusts glyph scale and offset within the icon.
+- move_layer moves a layer to another group, into a new group (create_group), or reorders it; index 0 is the top.
 - toggle_fx quickly enables/disables all glass effects for comparison.
 - **Inline images**: export_preview, render_liquid_glass, and export_marketing return base64 images inline by default. If you are a terminal-based agent (e.g. Claude Code CLI) that cannot display images, pass \`return_image: false\` to avoid wasting tokens on base64 data you cannot render.`,
   },
@@ -104,6 +105,22 @@ server.tool(
     cleanup_assets: z.boolean().default(true).describe('Delete orphaned asset files from the Assets directory'),
   },
   async (params) => removeFromBundle(params),
+);
+
+// ── Tool: move_layer ──
+server.tool(
+  'move_layer',
+  'Move an existing layer to another group (or into a new group) and/or reorder it. Index 0 is the top-most group/layer. Indices refer to the bundle before the move. A source group left empty is removed.',
+  {
+    bundle_path: z.string().describe('Path to .icon bundle'),
+    group_index: z.number().describe('Source group index (0-based)'),
+    layer_index: z.number().describe('Source layer index within the group (0-based)'),
+    to_group_index: z.optional(z.number()).describe('Destination group index (0-based); with create_group, the position where the new group is inserted (default 0, on top)'),
+    to_layer_index: z.number().default(0).describe('Position within the destination group (0 = top, clamped to the group size)'),
+    create_group: z.boolean().default(false).describe('Move the layer into a new group'),
+    group_name: z.optional(z.string()).describe('Name for the new group (default: the layer name)'),
+  },
+  async (params) => moveLayer(params),
 );
 
 // ── Tool: set_glass_effects ──
@@ -199,9 +216,9 @@ server.tool(
   {
     bundle_path: z.string().describe('Path to .icon bundle'),
     fill_type: z.enum(['solid', 'gradient', 'automatic', 'none']).describe('Fill type'),
-    color: z.optional(z.string()).describe('Hex color for solid fill or gradient bottom'),
-    color2: z.optional(z.string()).describe('Second hex color for gradient top'),
-    gradient_angle: z.number().default(0).describe('Gradient angle in degrees (0 = bottom to top)'),
+    color: z.optional(z.string()).describe('Hex color for solid fill, or the gradient color at the top when gradient_angle is 0'),
+    color2: z.optional(z.string()).describe('Second hex color for gradient, at the bottom when gradient_angle is 0'),
+    gradient_angle: z.number().default(0).describe('Gradient angle in degrees (0 = vertical, color at top and color2 at bottom)'),
   },
   async (params) => setFill(params),
 );

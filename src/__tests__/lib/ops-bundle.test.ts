@@ -17,6 +17,7 @@ import {
   createIcon,
   addLayerToBundle,
   removeFromBundle,
+  moveLayer,
   inspectBundle,
 } from '../../lib/ops-bundle';
 import type { CreateIconParams, AddLayerParams, RemoveParams } from '../../lib/ops-bundle';
@@ -440,6 +441,100 @@ describe('removeFromBundle', () => {
 
     expect(isErrorResult(result)).toBe(true);
     expect(responseText(result)).toContain('layer_index is required');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// moveLayer
+// ---------------------------------------------------------------------------
+
+describe('moveLayer', () => {
+  const layerNames = (m: { groups: { layers: { name: string }[] }[] }) =>
+    m.groups.map((g) => g.layers.map((l) => l.name));
+
+  test('move to existing group at top', async () => {
+    const bundlePath = await createFixtureBundle(tmpDir, 'MoveExisting', { groupCount: 2, layerCount: 2 });
+
+    const result = await moveLayer({ bundle_path: bundlePath, group_index: 0, layer_index: 1, to_group_index: 1 });
+
+    expect(isErrorResult(result)).toBe(false);
+    const manifest = await readManifest(bundlePath);
+    expect(layerNames(manifest)).toEqual([
+      ['layer-0-0'],
+      ['layer-0-1', 'layer-1-0', 'layer-1-1'],
+    ]);
+  });
+
+  test('move into new group inserted at index 0', async () => {
+    const bundlePath = await createFixtureBundle(tmpDir, 'MoveNew', { groupCount: 2, layerCount: 2 });
+    const before = await readManifest(bundlePath);
+    const original = structuredClone(before.groups[1].layers[1]);
+
+    const result = await moveLayer({
+      bundle_path: bundlePath,
+      group_index: 1,
+      layer_index: 1,
+      create_group: true,
+      group_name: 'Fresh',
+    });
+
+    expect(isErrorResult(result)).toBe(false);
+    const manifest = await readManifest(bundlePath);
+    expect(manifest.groups).toHaveLength(3);
+    expect(manifest.groups[0].name).toBe('Fresh');
+    expect(manifest.groups[0].layers).toEqual([original]);
+    expect(manifest.groups[2].layers.map((l) => l.name)).toEqual(['layer-1-0']);
+  });
+
+  test('reorder inside one group', async () => {
+    const bundlePath = await createFixtureBundle(tmpDir, 'MoveSame', { layerCount: 3 });
+
+    const result = await moveLayer({
+      bundle_path: bundlePath,
+      group_index: 0,
+      layer_index: 2,
+      to_group_index: 0,
+      to_layer_index: 0,
+    });
+
+    expect(isErrorResult(result)).toBe(false);
+    expect(layerNames(await readManifest(bundlePath))).toEqual([['layer-0-2', 'layer-0-0', 'layer-0-1']]);
+
+    await moveLayer({ bundle_path: bundlePath, group_index: 0, layer_index: 0, to_group_index: 0, to_layer_index: 99 });
+    expect(layerNames(await readManifest(bundlePath))).toEqual([['layer-0-0', 'layer-0-1', 'layer-0-2']]);
+  });
+
+  test('emptied source group is removed and destination index refers to pre-move manifest', async () => {
+    const bundlePath = await createFixtureBundle(tmpDir, 'MoveEmpty', { groupCount: 3, layerCount: 1 });
+
+    const result = await moveLayer({ bundle_path: bundlePath, group_index: 0, layer_index: 0, to_group_index: 2 });
+
+    expect(isErrorResult(result)).toBe(false);
+    const manifest = await readManifest(bundlePath);
+    expect(manifest.groups.map((g) => g.name)).toEqual(['Group1', 'Group2']);
+    expect(layerNames(manifest)).toEqual([['layer-1-0'], ['layer-0-0', 'layer-2-0']]);
+  });
+
+  test('out-of-range and missing destination — return errors', async () => {
+    const bundlePath = await createFixtureBundle(tmpDir, 'MoveErr', { groupCount: 2, layerCount: 1 });
+
+    const badGroup = await moveLayer({ bundle_path: bundlePath, group_index: 5, layer_index: 0, to_group_index: 0 });
+    expect(isErrorResult(badGroup)).toBe(true);
+    expect(responseText(badGroup)).toContain('out of range');
+
+    const badLayer = await moveLayer({ bundle_path: bundlePath, group_index: 0, layer_index: 3, to_group_index: 1 });
+    expect(isErrorResult(badLayer)).toBe(true);
+    expect(responseText(badLayer)).toContain('out of range');
+
+    const badDest = await moveLayer({ bundle_path: bundlePath, group_index: 0, layer_index: 0, to_group_index: 2 });
+    expect(isErrorResult(badDest)).toBe(true);
+    expect(responseText(badDest)).toContain('out of range');
+
+    const noDest = await moveLayer({ bundle_path: bundlePath, group_index: 0, layer_index: 0 });
+    expect(isErrorResult(noDest)).toBe(true);
+    expect(responseText(noDest)).toContain('to_group_index is required');
+
+    expect(layerNames(await readManifest(bundlePath))).toEqual([['layer-0-0'], ['layer-1-0']]);
   });
 });
 

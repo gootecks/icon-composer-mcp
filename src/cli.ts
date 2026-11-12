@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { program } from 'commander';
-import { createIcon, addLayerToBundle, removeFromBundle, inspectBundle } from './lib/ops-bundle';
+import { createIcon, addLayerToBundle, removeFromBundle, moveLayer, inspectBundle } from './lib/ops-bundle';
 import { setGlassEffects, setAppearances, setFill, setLayerPosition, toggleFx } from './lib/ops-glass';
 import { exportPreview, renderLiquidGlass, exportMarketing } from './lib/ops-render';
 
@@ -135,6 +135,32 @@ program
     );
   });
 
+// ── move-layer ──
+
+program
+  .command('move-layer')
+  .description('Move a layer to another group or into a new group')
+  .argument('<bundle_path>', 'Path to the .icon bundle')
+  .requiredOption('--group-index <n>', 'Source group index', toInt)
+  .requiredOption('--layer-index <n>', 'Source layer index', toInt)
+  .option('--to-group-index <n>', 'Destination group index (with --create-group: insert position, default 0)', toInt)
+  .option('--to-layer-index <n>', 'Position in the destination group (0 = top)', toInt, 0)
+  .option('--create-group', 'Move the layer into a new group')
+  .option('--group-name <name>', 'Name for the new group')
+  .action(async (bundle_path, opts) => {
+    await run(() =>
+      moveLayer({
+        bundle_path,
+        group_index: opts.groupIndex,
+        layer_index: opts.layerIndex,
+        to_group_index: opts.toGroupIndex,
+        to_layer_index: opts.toLayerIndex,
+        create_group: opts.createGroup ?? false,
+        group_name: opts.groupName,
+      }),
+    );
+  });
+
 // ── inspect ──
 
 program
@@ -241,9 +267,9 @@ program
   .description('Set background fill')
   .argument('<bundle_path>', 'Path to the .icon bundle')
   .requiredOption('--type <type>', 'Fill type (solid, gradient, automatic, none)')
-  .option('--color <hex>', 'Primary color')
-  .option('--color2 <hex>', 'Secondary color (for gradient)')
-  .option('--gradient-angle <n>', 'Gradient angle in degrees', toFloat, 0)
+  .option('--color <hex>', 'Primary color (gradient top at angle 0)')
+  .option('--color2 <hex>', 'Secondary color (gradient bottom at angle 0)')
+  .option('--gradient-angle <n>', 'Gradient angle in degrees (0 = vertical)', toFloat, 0)
   .action(async (bundle_path, opts) => {
     await run(() =>
       setFill({

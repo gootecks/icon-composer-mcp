@@ -10,6 +10,8 @@ import {
 } from '../../lib/render';
 import { resolveFill } from '../../lib/manifest';
 import { TEST_PNG } from '../helpers/fixtures';
+import { makeTempDir, cleanTempDir, createFixtureBundle, readManifest } from '../helpers/test-helpers';
+import { setFill } from '../../lib/ops-glass';
 import type { IconManifest } from '../../types';
 
 // Helper to decode PNG pixels
@@ -209,6 +211,45 @@ describe('renderPreview', () => {
       const bottom = pixelAt(data, 32, SIZE - 2, width);
       expect(top[0]).toBeGreaterThan(230);
       expect(bottom[0]).toBeLessThan(25);
+    });
+
+    describe('setFill gradient orientation (first color at top for angle 0)', () => {
+      const render = async (angle: number) => {
+        const dir = await makeTempDir('render-gradient-');
+        try {
+          const bundle = await createFixtureBundle(dir, 'grad');
+          await setFill({ bundle_path: bundle, fill_type: 'gradient', color: '#FF0000', color2: '#0000FF', gradient_angle: angle });
+          const manifest = await readManifest(bundle);
+          manifest.groups = [];
+          return getPixels(await renderPreview(manifest, new Map(), SIZE));
+        } finally {
+          await cleanTempDir(dir);
+        }
+      };
+
+      test('angle 0: color at top, color2 at bottom', async () => {
+        const { data, width } = await render(0);
+        const top = pixelAt(data, 32, 1, width);
+        const bottom = pixelAt(data, 32, SIZE - 2, width);
+        expect(top[0]).toBeGreaterThan(top[2]);
+        expect(bottom[2]).toBeGreaterThan(bottom[0]);
+      });
+
+      test('angle 90: color at left, color2 at right', async () => {
+        const { data, width } = await render(90);
+        const left = pixelAt(data, 1, 32, width);
+        const right = pixelAt(data, SIZE - 2, 32, width);
+        expect(left[0]).toBeGreaterThan(left[2]);
+        expect(right[2]).toBeGreaterThan(right[0]);
+      });
+
+      test('angle 45: color at top-left, color2 at bottom-right', async () => {
+        const { data, width } = await render(45);
+        const topLeft = pixelAt(data, 1, 1, width);
+        const bottomRight = pixelAt(data, SIZE - 2, SIZE - 2, width);
+        expect(topLeft[0]).toBeGreaterThan(topLeft[2]);
+        expect(bottomRight[2]).toBeGreaterThan(bottomRight[0]);
+      });
     });
 
     test('top-level fill takes precedence over the default fill specialization', async () => {
