@@ -3,6 +3,7 @@ import { program } from 'commander';
 import { createIcon, addLayerToBundle, removeFromBundle, moveLayer, inspectBundle } from './lib/ops-bundle';
 import { setGlassEffects, setAppearances, setFill, setLayerPosition, toggleFx } from './lib/ops-glass';
 import { exportPreview, renderLiquidGlass, exportMarketing } from './lib/ops-render';
+import { resultText, type McpResult } from './types';
 
 // ── Helpers ──
 
@@ -12,16 +13,9 @@ const toFloat = (v: string) => parseFloat(v);
 
 // ── Output handler ──
 
-type McpContentBlock = { type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string };
-
-interface McpResult {
-  content: McpContentBlock[];
-  isError?: true;
-}
-
 async function run(fn: () => Promise<McpResult>): Promise<void> {
   const result = await fn();
-  const text = result.content[0].text;
+  const text = resultText(result);
   if (result.isError) {
     console.error(text);
     process.exit(1);

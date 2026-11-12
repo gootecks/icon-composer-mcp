@@ -141,7 +141,12 @@ export interface IconManifest {
 
 export type McpContentBlock = { type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string };
 
-export interface McpResult {
+export type McpResult = {
   content: McpContentBlock[];
   isError?: true;
+};
+
+export function resultText(result: McpResult): string {
+  const first = result.content[0];
+  return first?.type === 'text' ? first.text : '';
 }

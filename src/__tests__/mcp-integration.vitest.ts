@@ -50,6 +50,11 @@ function text(result: any): string {
   return result.content[0].text;
 }
 
+// callTool's compatibility result types content as unknown; the server always returns these blocks.
+function blocks(result: Record<string, unknown>): { type: string; mimeType?: string; data?: string }[] {
+  return result.content as { type: string; mimeType?: string; data?: string }[];
+}
+
 // ── Discovery ──
 
 describe('discovery', () => {
@@ -247,11 +252,11 @@ test('export_preview returns inline image by default', async () => {
     },
   });
   expect(r.isError).toBeFalsy();
-  expect(r.content.length).toBeGreaterThanOrEqual(2);
-  const imageBlock = r.content[1] as any;
+  expect(blocks(r).length).toBeGreaterThanOrEqual(2);
+  const imageBlock = blocks(r)[1];
   expect(imageBlock.type).toBe('image');
   expect(imageBlock.mimeType).toBe('image/png');
-  expect(imageBlock.data.length).toBeGreaterThan(0);
+  expect(imageBlock.data?.length).toBeGreaterThan(0);
 });
 
 test('export_preview return_image=false omits image', async () => {
@@ -267,8 +272,8 @@ test('export_preview return_image=false omits image', async () => {
     },
   });
   expect(r.isError).toBeFalsy();
-  expect(r.content.length).toBe(1);
-  expect(r.content[0].type).toBe('text');
+  expect(blocks(r).length).toBe(1);
+  expect(blocks(r)[0].type).toBe('text');
 });
 
 // ── export_marketing ──
@@ -297,8 +302,8 @@ test('export_marketing returns inline image', async () => {
     },
   });
   expect(r.isError).toBeFalsy();
-  expect(r.content.length).toBeGreaterThanOrEqual(2);
-  const imageBlock = r.content[1] as any;
+  expect(blocks(r).length).toBeGreaterThanOrEqual(2);
+  const imageBlock = blocks(r)[1];
   expect(imageBlock.type).toBe('image');
   expect(imageBlock.mimeType).toBe('image/png');
 });
