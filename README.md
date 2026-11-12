@@ -178,6 +178,45 @@ icon-composer --help
 
 </details>
 
+<details>
+<summary>&nbsp;&nbsp;<b>Standalone binary (macOS, no Node required)</b></summary>
+
+&nbsp;
+
+Build self-contained executables with Bun from a clone of this repo: `icon-composer` (CLI, from `src/cli.ts`) and `icon-composer-mcp` (MCP stdio server, from `src/server.ts`).
+
+```bash
+mise install        # bun, hk and fnox at the pinned versions
+mise run setup      # bun install
+mise run install    # builds bin/icon-composer and bin/icon-composer-mcp, copies both to ~/.local/bin
+icon-composer doctor
+```
+
+Without mise: `bun install && bun run build:bin`, then `install -m 755 bin/icon-composer bin/icon-composer-mcp <dir on your PATH>`.
+
+Point MCP clients at the server binary, not the CLI. Run with no arguments, the CLI prints help and exits:
+
+```json
+{
+  "mcpServers": {
+    "icon-composer": {
+      "type": "stdio",
+      "command": "icon-composer-mcp"
+    }
+  }
+}
+```
+
+Compile from the `src/` entries via `scripts/build-binary.ts`, not `bun build dist/cli.js --compile`:
+
+- `dist/cli.js` is a tsup bundle that leaves `sharp` and the `visual-test` chunk external, so `bun build --compile` cannot resolve them.
+- `sharp` picks its native addon at runtime, which `bun build --compile` cannot follow. The build script swaps in a static loader that embeds `sharp.node` and `libvips-cpp.dylib` in the binary.
+- On first run the binary writes libvips to `~/Library/Caches/icon-composer/` and loads it from there.
+
+Each binary is about 100 MB: the Bun runtime is about 88 MB, plus libvips at 16 MB. They run only on the architecture they were built on. Rebuild after `bun install` updates `sharp`.
+
+</details>
+
 ## How It Works
 
 <p align="center">
@@ -206,21 +245,21 @@ Run `icon-composer doctor` to check your setup.
 
 ## CLI Commands
 
-| Command | Description |
-|---------|-------------|
-| `create` | Create a new `.icon` bundle from a foreground image |
-| `add-layer` | Add a layer to an existing bundle |
-| `remove` | Remove a layer or group |
-| `inspect` | Read and display bundle contents |
-| `glass` | Configure Liquid Glass effects on a group |
-| `appearance` | Set dark/tinted mode overrides |
-| `fill` | Set background fill (solid, gradient, automatic, none) |
-| `position` | Set layer/group scale and offset |
-| `fx` | Toggle all glass effects on/off |
-| `preview` | Export a preview PNG (Liquid Glass or flat) |
-| `render` | Render pixel-perfect Liquid Glass via ictool |
+| Command            | Description                                                  |
+| ------------------ | ------------------------------------------------------------ |
+| `create`           | Create a new `.icon` bundle from a foreground image          |
+| `add-layer`        | Add a layer to an existing bundle                            |
+| `remove`           | Remove a layer or group                                      |
+| `inspect`          | Read and display bundle contents                             |
+| `glass`            | Configure Liquid Glass effects on a group                    |
+| `appearance`       | Set dark/tinted mode overrides                               |
+| `fill`             | Set background fill (solid, gradient, automatic, none)       |
+| `position`         | Set layer/group scale and offset                             |
+| `fx`               | Toggle all glass effects on/off                              |
+| `preview`          | Export a preview PNG (Liquid Glass or flat)                  |
+| `render`           | Render pixel-perfect Liquid Glass via ictool                 |
 | `export-marketing` | Export opaque 1024x1024 PNG for App Store Connect (no alpha) |
-| `doctor` | Check system setup and dependencies |
+| `doctor`           | Check system setup and dependencies                          |
 
 ### Details
 
@@ -233,18 +272,18 @@ Run `icon-composer doctor` to check your setup.
 icon-composer create <foreground_path> <output_dir> --bg-color <hex> [options]
 ```
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--bg-color <hex>` | *required* | Background color (e.g. `"#0A66C2"`) |
-| `--bundle-name <name>` | `AppIcon` | Bundle name (without `.icon` extension) |
-| `--dark-bg-color <hex>` | — | Dark mode background color |
-| `--glyph-scale <n>` | `1.0` | Glyph scale (1.0 = standard ~65% of icon area) |
-| `--specular / --no-specular` | `true` | Specular highlight |
-| `--shadow-kind <kind>` | `layer-color` | Shadow type: `neutral`, `layer-color`, `none` |
-| `--shadow-opacity <n>` | `0.5` | Shadow opacity (0–1) |
-| `--blur-material <n>` | — | Blur material value (0–1) |
-| `--translucency-enabled` | `false` | Enable translucency gradient |
-| `--translucency-value <n>` | `0.4` | Translucency amount (0–1) |
+| Option                       | Default       | Description                                    |
+| ---------------------------- | ------------- | ---------------------------------------------- |
+| `--bg-color <hex>`           | _required_    | Background color (e.g. `"#0A66C2"`)            |
+| `--bundle-name <name>`       | `AppIcon`     | Bundle name (without `.icon` extension)        |
+| `--dark-bg-color <hex>`      | —             | Dark mode background color                     |
+| `--glyph-scale <n>`          | `1.0`         | Glyph scale (1.0 = standard ~65% of icon area) |
+| `--specular / --no-specular` | `true`        | Specular highlight                             |
+| `--shadow-kind <kind>`       | `layer-color` | Shadow type: `neutral`, `layer-color`, `none`  |
+| `--shadow-opacity <n>`       | `0.5`         | Shadow opacity (0–1)                           |
+| `--blur-material <n>`        | —             | Blur material value (0–1)                      |
+| `--translucency-enabled`     | `false`       | Enable translucency gradient                   |
+| `--translucency-value <n>`   | `0.4`         | Translucency amount (0–1)                      |
 
 **Output:** Creates `<output_dir>/<bundle_name>.icon/` containing `icon.json` manifest and `Assets/` directory.
 
@@ -259,17 +298,17 @@ icon-composer create <foreground_path> <output_dir> --bg-color <hex> [options]
 icon-composer add-layer <bundle_path> <image_path> --name <name> [options]
 ```
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--name <name>` | *required* | Layer name |
-| `--group-index <n>` | `0` | Target group index |
-| `--create-group` | `false` | Create a new group for this layer |
-| `--opacity <n>` | `1.0` | Layer opacity (0–1) |
-| `--scale <n>` | `1.0` | Layer scale |
-| `--offset-x <n>` | `0` | X offset in points |
-| `--offset-y <n>` | `0` | Y offset in points |
-| `--blend-mode <mode>` | `normal` | Blend mode (e.g. `multiply`, `screen`, `overlay`) |
-| `--glass / --no-glass` | `true` | Participate in Liquid Glass effects |
+| Option                 | Default    | Description                                       |
+| ---------------------- | ---------- | ------------------------------------------------- |
+| `--name <name>`        | _required_ | Layer name                                        |
+| `--group-index <n>`    | `0`        | Target group index                                |
+| `--create-group`       | `false`    | Create a new group for this layer                 |
+| `--opacity <n>`        | `1.0`      | Layer opacity (0–1)                               |
+| `--scale <n>`          | `1.0`      | Layer scale                                       |
+| `--offset-x <n>`       | `0`        | X offset in points                                |
+| `--offset-y <n>`       | `0`        | Y offset in points                                |
+| `--blend-mode <mode>`  | `normal`   | Blend mode (e.g. `multiply`, `screen`, `overlay`) |
+| `--glass / --no-glass` | `true`     | Participate in Liquid Glass effects               |
 
 **Supported formats:** `.png`, `.jpg`, `.jpeg`, `.svg`, `.webp`, `.heic`, `.heif`
 
@@ -308,18 +347,18 @@ icon-composer inspect <bundle_path>
 icon-composer glass <bundle_path> [options]
 ```
 
-| Option | Description |
-|--------|-------------|
-| `--group-index <n>` | Target group (default: `0`) |
-| `--specular / --no-specular` | Specular highlight |
-| `--blur-material <n>` | Blur amount (0–1) |
-| `--shadow-kind <kind>` | `neutral`, `layer-color`, or `none` |
-| `--shadow-opacity <n>` | Shadow opacity (0–1) |
-| `--translucency-enabled / --no-translucency-enabled` | Translucency toggle |
-| `--translucency-value <n>` | Translucency amount (0–1) |
-| `--opacity <n>` | Group opacity (0–1) |
-| `--blend-mode <mode>` | Group blend mode |
-| `--lighting <type>` | `combined` or `individual` |
+| Option                                               | Description                         |
+| ---------------------------------------------------- | ----------------------------------- |
+| `--group-index <n>`                                  | Target group (default: `0`)         |
+| `--specular / --no-specular`                         | Specular highlight                  |
+| `--blur-material <n>`                                | Blur amount (0–1)                   |
+| `--shadow-kind <kind>`                               | `neutral`, `layer-color`, or `none` |
+| `--shadow-opacity <n>`                               | Shadow opacity (0–1)                |
+| `--translucency-enabled / --no-translucency-enabled` | Translucency toggle                 |
+| `--translucency-value <n>`                           | Translucency amount (0–1)           |
+| `--opacity <n>`                                      | Group opacity (0–1)                 |
+| `--blend-mode <mode>`                                | Group blend mode                    |
+| `--lighting <type>`                                  | `combined` or `individual`          |
 
 </details>
 
@@ -332,26 +371,26 @@ icon-composer glass <bundle_path> [options]
 icon-composer appearance <bundle_path> --target <fill|group|layer> --appearance <dark|tinted> [options]
 ```
 
-| Option | Description |
-|--------|-------------|
-| `--target <type>` | `fill` (background color), `group` (glass effects), or `layer` (individual layer) |
-| `--appearance <mode>` | `dark` or `tinted` |
-| `--group-index <n>` | Group index (for `target=group` or `target=layer`) |
-| `--layer-index <n>` | Layer index within the group (required when `target=layer`) |
-| `--bg-color <hex>` | Background color for this appearance |
-| `--specular / --no-specular` | Specular for this appearance |
-| `--shadow-kind <kind>` | Shadow type for this appearance |
-| `--shadow-opacity <n>` | Shadow opacity for this appearance |
-| `--opacity <n>` | Opacity for this appearance |
-| `--blur-material <n>` | Blur material value (0–1) for this appearance |
-| `--translucency-enabled / --no-translucency-enabled` | Translucency toggle for this appearance |
-| `--translucency-value <n>` | Translucency amount (0–1) for this appearance |
-| `--hidden / --no-hidden` | Hidden state for this appearance |
-| `--blend-mode <mode>` | Blend mode for this appearance (target=layer) |
-| `--fill-color <hex>` | Fill color for this appearance (target=layer) |
-| `--position-scale <n>` | Position scale for this appearance |
-| `--position-offset-x <n>` | Position X offset for this appearance |
-| `--position-offset-y <n>` | Position Y offset for this appearance |
+| Option                                               | Description                                                                       |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `--target <type>`                                    | `fill` (background color), `group` (glass effects), or `layer` (individual layer) |
+| `--appearance <mode>`                                | `dark` or `tinted`                                                                |
+| `--group-index <n>`                                  | Group index (for `target=group` or `target=layer`)                                |
+| `--layer-index <n>`                                  | Layer index within the group (required when `target=layer`)                       |
+| `--bg-color <hex>`                                   | Background color for this appearance                                              |
+| `--specular / --no-specular`                         | Specular for this appearance                                                      |
+| `--shadow-kind <kind>`                               | Shadow type for this appearance                                                   |
+| `--shadow-opacity <n>`                               | Shadow opacity for this appearance                                                |
+| `--opacity <n>`                                      | Opacity for this appearance                                                       |
+| `--blur-material <n>`                                | Blur material value (0–1) for this appearance                                     |
+| `--translucency-enabled / --no-translucency-enabled` | Translucency toggle for this appearance                                           |
+| `--translucency-value <n>`                           | Translucency amount (0–1) for this appearance                                     |
+| `--hidden / --no-hidden`                             | Hidden state for this appearance                                                  |
+| `--blend-mode <mode>`                                | Blend mode for this appearance (target=layer)                                     |
+| `--fill-color <hex>`                                 | Fill color for this appearance (target=layer)                                     |
+| `--position-scale <n>`                               | Position scale for this appearance                                                |
+| `--position-offset-x <n>`                            | Position X offset for this appearance                                             |
+| `--position-offset-y <n>`                            | Position Y offset for this appearance                                             |
 
 </details>
 
@@ -364,12 +403,12 @@ icon-composer appearance <bundle_path> --target <fill|group|layer> --appearance 
 icon-composer fill <bundle_path> --type <solid|gradient|automatic|none> [options]
 ```
 
-| Option | Description |
-|--------|-------------|
-| `--type <type>` | `solid`, `gradient`, `automatic`, or `none` |
-| `--color <hex>` | Primary color (for solid or gradient bottom) |
-| `--color2 <hex>` | Secondary color (gradient top) |
-| `--gradient-angle <n>` | Gradient angle in degrees (default: `0`) |
+| Option                 | Description                                  |
+| ---------------------- | -------------------------------------------- |
+| `--type <type>`        | `solid`, `gradient`, `automatic`, or `none`  |
+| `--color <hex>`        | Primary color (for solid or gradient bottom) |
+| `--color2 <hex>`       | Secondary color (gradient top)               |
+| `--gradient-angle <n>` | Gradient angle in degrees (default: `0`)     |
 
 </details>
 
@@ -382,14 +421,14 @@ icon-composer fill <bundle_path> --type <solid|gradient|automatic|none> [options
 icon-composer position <bundle_path> [options]
 ```
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--target <type>` | `layer` | `layer` or `group` |
-| `--group-index <n>` | `0` | Group index |
-| `--layer-index <n>` | — | Layer index (required for `--target layer`) |
-| `--scale <n>` | — | Scale factor (0.05–3.0) |
-| `--offset-x <n>` | — | X offset in points |
-| `--offset-y <n>` | — | Y offset in points |
+| Option              | Default | Description                                 |
+| ------------------- | ------- | ------------------------------------------- |
+| `--target <type>`   | `layer` | `layer` or `group`                          |
+| `--group-index <n>` | `0`     | Group index                                 |
+| `--layer-index <n>` | —       | Layer index (required for `--target layer`) |
+| `--scale <n>`       | —       | Scale factor (0.05–3.0)                     |
+| `--offset-x <n>`    | —       | X offset in points                          |
+| `--offset-y <n>`    | —       | Y offset in points                          |
 
 </details>
 
@@ -415,16 +454,16 @@ Enables or disables specular, shadow, blur, and translucency on every group at o
 icon-composer preview <bundle_path> <output_path> [options]
 ```
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--size <n>` | `1024` | Output size in pixels |
-| `--appearance <mode>` | — | `dark` or `tinted` |
-| `--flat` | `false` | Force flat rendering (skip Liquid Glass) |
-| `--canvas-bg <preset>` | — | `light`, `dark`, `checkerboard`, `homescreen-light`, `homescreen-dark` |
-| `--apple-preset <name>` | — | Apple wallpaper: `sine-purple-orange`, `sine-gasflame`, `sine-magenta`, `sine-green-yellow`, `sine-purple-orange-black`, `sine-gray` |
-| `--canvas-bg-color <hex>` | — | Custom background color |
-| `--canvas-bg-image <path>` | — | Custom background image |
-| `--zoom <n>` | `1.0` | Zoom level (icon size relative to canvas) |
+| Option                     | Default | Description                                                                                                                          |
+| -------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `--size <n>`               | `1024`  | Output size in pixels                                                                                                                |
+| `--appearance <mode>`      | —       | `dark` or `tinted`                                                                                                                   |
+| `--flat`                   | `false` | Force flat rendering (skip Liquid Glass)                                                                                             |
+| `--canvas-bg <preset>`     | —       | `light`, `dark`, `checkerboard`, `homescreen-light`, `homescreen-dark`                                                               |
+| `--apple-preset <name>`    | —       | Apple wallpaper: `sine-purple-orange`, `sine-gasflame`, `sine-magenta`, `sine-green-yellow`, `sine-purple-orange-black`, `sine-gray` |
+| `--canvas-bg-color <hex>`  | —       | Custom background color                                                                                                              |
+| `--canvas-bg-image <path>` | —       | Custom background image                                                                                                              |
+| `--zoom <n>`               | `1.0`   | Zoom level (icon size relative to canvas)                                                                                            |
 
 **Output:** PNG file. Uses Liquid Glass rendering by default (falls back to flat if Icon Composer is not installed).
 
@@ -439,17 +478,17 @@ icon-composer preview <bundle_path> <output_path> [options]
 icon-composer render <bundle_path> <output_path> [options]
 ```
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--platform <name>` | `iOS` | `iOS`, `macOS`, or `watchOS` |
-| `--rendition <name>` | `Default` | `Default`, `Dark`, `TintedLight`, `TintedDark`, `ClearLight`, `ClearDark` |
-| `--width <n>` | `1024` | Output width |
-| `--height <n>` | `1024` | Output height |
-| `--scale <n>` | `1` | Scale factor (1x, 2x, 3x) |
-| `--light-angle <n>` | — | Light angle (0–360) |
-| `--tint-color <n>` | — | Tint hue (0–1) |
-| `--tint-strength <n>` | — | Tint strength (0–1) |
-| Canvas options | — | Same as `preview` |
+| Option                | Default   | Description                                                               |
+| --------------------- | --------- | ------------------------------------------------------------------------- |
+| `--platform <name>`   | `iOS`     | `iOS`, `macOS`, or `watchOS`                                              |
+| `--rendition <name>`  | `Default` | `Default`, `Dark`, `TintedLight`, `TintedDark`, `ClearLight`, `ClearDark` |
+| `--width <n>`         | `1024`    | Output width                                                              |
+| `--height <n>`        | `1024`    | Output height                                                             |
+| `--scale <n>`         | `1`       | Scale factor (1x, 2x, 3x)                                                 |
+| `--light-angle <n>`   | —         | Light angle (0–360)                                                       |
+| `--tint-color <n>`    | —         | Tint hue (0–1)                                                            |
+| `--tint-strength <n>` | —         | Tint strength (0–1)                                                       |
+| Canvas options        | —         | Same as `preview`                                                         |
 
 **Requires:** Icon Composer.app installed. Returns an error with install instructions if missing.
 
@@ -485,20 +524,20 @@ icon-composer doctor
 
 ## MCP Tools
 
-| Tool | Description |
-|------|-------------|
-| `create_icon` | Create a `.icon` bundle from a foreground image and background color |
-| `add_layer_to_icon` | Add a new layer to an existing bundle |
-| `remove_layer` | Remove a layer or group, optionally clean up assets |
-| `read_icon` | Inspect bundle manifest and assets |
-| `set_glass_effects` | Configure specular, blur, shadow, translucency |
-| `set_appearances` | Set dark/tinted mode overrides |
-| `set_fill` | Set background fill |
-| `set_layer_position` | Adjust layer scale and offset |
-| `toggle_fx` | Enable/disable all glass effects at once |
-| `export_preview` | Render a preview PNG |
-| `render_liquid_glass` | Render via Apple's ictool (requires Icon Composer) |
-| `export_marketing` | Export opaque PNG for App Store Connect (Liquid Glass via ictool, flat fallback) |
+| Tool                  | Description                                                                      |
+| --------------------- | -------------------------------------------------------------------------------- |
+| `create_icon`         | Create a `.icon` bundle from a foreground image and background color             |
+| `add_layer_to_icon`   | Add a new layer to an existing bundle                                            |
+| `remove_layer`        | Remove a layer or group, optionally clean up assets                              |
+| `read_icon`           | Inspect bundle manifest and assets                                               |
+| `set_glass_effects`   | Configure specular, blur, shadow, translucency                                   |
+| `set_appearances`     | Set dark/tinted mode overrides                                                   |
+| `set_fill`            | Set background fill                                                              |
+| `set_layer_position`  | Adjust layer scale and offset                                                    |
+| `toggle_fx`           | Enable/disable all glass effects at once                                         |
+| `export_preview`      | Render a preview PNG                                                             |
+| `render_liquid_glass` | Render via Apple's ictool (requires Icon Composer)                               |
+| `export_marketing`    | Export opaque PNG for App Store Connect (Liquid Glass via ictool, flat fallback) |
 
 All tools return `{ content: [{ type: "text", text: "..." }], isError?: true }`.
 
@@ -511,20 +550,20 @@ All tools return `{ content: [{ type: "text", text: "..." }], isError?: true }`.
 
 Create a `.icon` bundle from a foreground image.
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `foreground_path` | string | yes | — | Absolute path to PNG or SVG |
-| `output_dir` | string | yes | — | Output directory |
-| `bundle_name` | string | no | `AppIcon` | Bundle name |
-| `bg_color` | string | yes | — | Background hex color |
-| `dark_bg_color` | string | no | — | Dark mode background color |
-| `glyph_scale` | number | no | `1.0` | Glyph scale (0.1–2.0) |
-| `specular` | boolean | no | `true` | Specular highlight |
-| `shadow_kind` | enum | no | `layer-color` | `neutral`, `layer-color`, `none` |
-| `shadow_opacity` | number | no | `0.5` | Shadow opacity (0–1) |
-| `blur_material` | number | no | — | Blur amount (0–1) |
-| `translucency_enabled` | boolean | no | `false` | Enable translucency |
-| `translucency_value` | number | no | `0.4` | Translucency amount (0–1) |
+| Parameter              | Type    | Required | Default       | Description                      |
+| ---------------------- | ------- | -------- | ------------- | -------------------------------- |
+| `foreground_path`      | string  | yes      | —             | Absolute path to PNG or SVG      |
+| `output_dir`           | string  | yes      | —             | Output directory                 |
+| `bundle_name`          | string  | no       | `AppIcon`     | Bundle name                      |
+| `bg_color`             | string  | yes      | —             | Background hex color             |
+| `dark_bg_color`        | string  | no       | —             | Dark mode background color       |
+| `glyph_scale`          | number  | no       | `1.0`         | Glyph scale (0.1–2.0)            |
+| `specular`             | boolean | no       | `true`        | Specular highlight               |
+| `shadow_kind`          | enum    | no       | `layer-color` | `neutral`, `layer-color`, `none` |
+| `shadow_opacity`       | number  | no       | `0.5`         | Shadow opacity (0–1)             |
+| `blur_material`        | number  | no       | —             | Blur amount (0–1)                |
+| `translucency_enabled` | boolean | no       | `false`       | Enable translucency              |
+| `translucency_value`   | number  | no       | `0.4`         | Translucency amount (0–1)        |
 
 </details>
 
@@ -537,19 +576,19 @@ Create a `.icon` bundle from a foreground image.
 
 Add a layer to an existing bundle.
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `bundle_path` | string | yes | — | Path to `.icon` bundle |
-| `image_path` | string | yes | — | Path to image file |
-| `layer_name` | string | yes | — | Layer name |
-| `group_index` | number | no | `0` | Target group |
-| `create_group` | boolean | no | `false` | Create new group |
-| `opacity` | number | no | `1.0` | Layer opacity (0–1) |
-| `scale` | number | no | `1.0` | Layer scale (0.1–2.0) |
-| `offset_x` | number | no | `0` | X offset |
-| `offset_y` | number | no | `0` | Y offset |
-| `blend_mode` | enum | no | `normal` | Blend mode |
-| `glass` | boolean | no | `true` | Glass participation |
+| Parameter      | Type    | Required | Default  | Description            |
+| -------------- | ------- | -------- | -------- | ---------------------- |
+| `bundle_path`  | string  | yes      | —        | Path to `.icon` bundle |
+| `image_path`   | string  | yes      | —        | Path to image file     |
+| `layer_name`   | string  | yes      | —        | Layer name             |
+| `group_index`  | number  | no       | `0`      | Target group           |
+| `create_group` | boolean | no       | `false`  | Create new group       |
+| `opacity`      | number  | no       | `1.0`    | Layer opacity (0–1)    |
+| `scale`        | number  | no       | `1.0`    | Layer scale (0.1–2.0)  |
+| `offset_x`     | number  | no       | `0`      | X offset               |
+| `offset_y`     | number  | no       | `0`      | Y offset               |
+| `blend_mode`   | enum    | no       | `normal` | Blend mode             |
+| `glass`        | boolean | no       | `true`   | Glass participation    |
 
 </details>
 
@@ -562,13 +601,13 @@ Add a layer to an existing bundle.
 
 Remove a layer or group. `layer_index` required when `target=layer`.
 
-| Parameter | Type | Required | Default |
-|-----------|------|----------|---------|
-| `bundle_path` | string | yes | — |
-| `target` | enum | yes | — | `layer` or `group` |
-| `group_index` | number | yes | — |
-| `layer_index` | number | no | — |
-| `cleanup_assets` | boolean | no | `true` |
+| Parameter        | Type    | Required | Default |
+| ---------------- | ------- | -------- | ------- |
+| `bundle_path`    | string  | yes      | —       |
+| `target`         | enum    | yes      | —       | `layer` or `group` |
+| `group_index`    | number  | yes      | —       |
+| `layer_index`    | number  | no       | —       |
+| `cleanup_assets` | boolean | no       | `true`  |
 
 </details>
 
@@ -581,9 +620,9 @@ Remove a layer or group. `layer_index` required when `target=layer`.
 
 Inspect a bundle. Returns full manifest JSON and asset list with sizes.
 
-| Parameter | Type | Required |
-|-----------|------|----------|
-| `bundle_path` | string | yes |
+| Parameter     | Type   | Required |
+| ------------- | ------ | -------- |
+| `bundle_path` | string | yes      |
 
 </details>
 
@@ -596,19 +635,19 @@ Inspect a bundle. Returns full manifest JSON and asset list with sizes.
 
 Configure Liquid Glass on a group. All effect parameters are optional — only provided values are changed.
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `bundle_path` | string | — | Path to bundle |
-| `group_index` | number | `0` | Target group |
-| `specular` | boolean | — | Specular toggle |
-| `blur_material` | number\|null | — | Blur (0–1, null to disable) |
-| `shadow_kind` | enum | — | `neutral`, `layer-color`, `none` |
-| `shadow_opacity` | number | — | Shadow opacity (0–1) |
-| `translucency_enabled` | boolean | — | Translucency toggle |
-| `translucency_value` | number | — | Translucency amount (0–1) |
-| `opacity` | number | — | Group opacity (0–1) |
-| `blend_mode` | enum | — | Blend mode |
-| `lighting` | enum | — | `combined` or `individual` |
+| Parameter              | Type         | Default | Description                      |
+| ---------------------- | ------------ | ------- | -------------------------------- |
+| `bundle_path`          | string       | —       | Path to bundle                   |
+| `group_index`          | number       | `0`     | Target group                     |
+| `specular`             | boolean      | —       | Specular toggle                  |
+| `blur_material`        | number\|null | —       | Blur (0–1, null to disable)      |
+| `shadow_kind`          | enum         | —       | `neutral`, `layer-color`, `none` |
+| `shadow_opacity`       | number       | —       | Shadow opacity (0–1)             |
+| `translucency_enabled` | boolean      | —       | Translucency toggle              |
+| `translucency_value`   | number       | —       | Translucency amount (0–1)        |
+| `opacity`              | number       | —       | Group opacity (0–1)              |
+| `blend_mode`           | enum         | —       | Blend mode                       |
+| `lighting`             | enum         | —       | `combined` or `individual`       |
 
 </details>
 
@@ -621,27 +660,27 @@ Configure Liquid Glass on a group. All effect parameters are optional — only p
 
 Set dark/tinted overrides for background fill, group effects, or individual layer properties.
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `bundle_path` | string | yes | Path to bundle |
-| `target` | enum | yes | `fill`, `group`, or `layer` |
-| `appearance` | enum | yes | `dark` or `tinted` |
-| `group_index` | number | no | Group index (for `target=group` or `target=layer`) |
-| `layer_index` | number | no | Layer index within the group (required when `target=layer`) |
-| `bg_color` | string | no | Background color for this appearance (target=fill) |
-| `specular` | boolean | no | Specular for this appearance (target=group) |
-| `shadow_kind` | enum | no | Shadow type (target=group) |
-| `shadow_opacity` | number | no | Shadow opacity (target=group) |
-| `opacity` | number | no | Opacity for this appearance (target=group or target=layer) |
-| `blur_material` | number\|null | no | Blur material for this appearance (target=group) |
-| `translucency_enabled` | boolean | no | Enable translucency for this appearance (target=group) |
-| `translucency_value` | number | no | Translucency amount for this appearance (target=group) |
-| `hidden` | boolean | no | Hidden state for this appearance (target=group or target=layer) |
-| `blend_mode` | enum | no | Blend mode for this appearance (target=layer) |
-| `fill_color` | string | no | Fill color hex for this appearance (target=layer) |
-| `position_scale` | number | no | Position scale for this appearance (0.05–3.0) |
-| `position_offset_x` | number | no | Position X offset for this appearance |
-| `position_offset_y` | number | no | Position Y offset for this appearance |
+| Parameter              | Type         | Required | Description                                                     |
+| ---------------------- | ------------ | -------- | --------------------------------------------------------------- |
+| `bundle_path`          | string       | yes      | Path to bundle                                                  |
+| `target`               | enum         | yes      | `fill`, `group`, or `layer`                                     |
+| `appearance`           | enum         | yes      | `dark` or `tinted`                                              |
+| `group_index`          | number       | no       | Group index (for `target=group` or `target=layer`)              |
+| `layer_index`          | number       | no       | Layer index within the group (required when `target=layer`)     |
+| `bg_color`             | string       | no       | Background color for this appearance (target=fill)              |
+| `specular`             | boolean      | no       | Specular for this appearance (target=group)                     |
+| `shadow_kind`          | enum         | no       | Shadow type (target=group)                                      |
+| `shadow_opacity`       | number       | no       | Shadow opacity (target=group)                                   |
+| `opacity`              | number       | no       | Opacity for this appearance (target=group or target=layer)      |
+| `blur_material`        | number\|null | no       | Blur material for this appearance (target=group)                |
+| `translucency_enabled` | boolean      | no       | Enable translucency for this appearance (target=group)          |
+| `translucency_value`   | number       | no       | Translucency amount for this appearance (target=group)          |
+| `hidden`               | boolean      | no       | Hidden state for this appearance (target=group or target=layer) |
+| `blend_mode`           | enum         | no       | Blend mode for this appearance (target=layer)                   |
+| `fill_color`           | string       | no       | Fill color hex for this appearance (target=layer)               |
+| `position_scale`       | number       | no       | Position scale for this appearance (0.05–3.0)                   |
+| `position_offset_x`    | number       | no       | Position X offset for this appearance                           |
+| `position_offset_y`    | number       | no       | Position Y offset for this appearance                           |
 
 </details>
 
@@ -654,13 +693,13 @@ Set dark/tinted overrides for background fill, group effects, or individual laye
 
 Set background fill.
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `bundle_path` | string | yes | Path to bundle |
-| `fill_type` | enum | yes | `solid`, `gradient`, `automatic`, `none` |
-| `color` | string | no | Hex color (solid or gradient bottom) |
-| `color2` | string | no | Gradient top color |
-| `gradient_angle` | number | no | Angle in degrees (default: `0`) |
+| Parameter        | Type   | Required | Description                              |
+| ---------------- | ------ | -------- | ---------------------------------------- |
+| `bundle_path`    | string | yes      | Path to bundle                           |
+| `fill_type`      | enum   | yes      | `solid`, `gradient`, `automatic`, `none` |
+| `color`          | string | no       | Hex color (solid or gradient bottom)     |
+| `color2`         | string | no       | Gradient top color                       |
+| `gradient_angle` | number | no       | Angle in degrees (default: `0`)          |
 
 </details>
 
@@ -673,15 +712,15 @@ Set background fill.
 
 Adjust layer or group scale and offset.
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `bundle_path` | string | — | Path to bundle |
-| `target` | enum | `layer` | `layer` or `group` |
-| `group_index` | number | `0` | Group index |
-| `layer_index` | number | — | Layer index (for `target=layer`) |
-| `scale` | number | — | Scale (0.05–3.0) |
-| `offset_x` | number | — | X offset |
-| `offset_y` | number | — | Y offset |
+| Parameter     | Type   | Default | Description                      |
+| ------------- | ------ | ------- | -------------------------------- |
+| `bundle_path` | string | —       | Path to bundle                   |
+| `target`      | enum   | `layer` | `layer` or `group`               |
+| `group_index` | number | `0`     | Group index                      |
+| `layer_index` | number | —       | Layer index (for `target=layer`) |
+| `scale`       | number | —       | Scale (0.05–3.0)                 |
+| `offset_x`    | number | —       | X offset                         |
+| `offset_y`    | number | —       | Y offset                         |
 
 </details>
 
@@ -694,10 +733,10 @@ Adjust layer or group scale and offset.
 
 Enable or disable all glass effects on every group.
 
-| Parameter | Type | Required |
-|-----------|------|----------|
-| `bundle_path` | string | yes |
-| `enabled` | boolean | yes |
+| Parameter     | Type    | Required |
+| ------------- | ------- | -------- |
+| `bundle_path` | string  | yes      |
+| `enabled`     | boolean | yes      |
 
 </details>
 
@@ -710,19 +749,19 @@ Enable or disable all glass effects on every group.
 
 Render a preview PNG. Uses Liquid Glass by default, falls back to flat.
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `bundle_path` | string | — | Path to bundle |
-| `output_path` | string | — | Output PNG path |
-| `size` | number | `1024` | Output size (16–2048) |
-| `appearance` | enum | — | `dark` or `tinted` |
-| `flat` | boolean | `false` | Force flat rendering |
-| `canvas_bg` | enum | — | Preset background |
-| `apple_preset` | enum | — | Apple wallpaper preset |
-| `canvas_bg_color` | string | — | Custom background hex |
-| `canvas_bg_image` | string | — | Background image path |
-| `zoom` | number | `1.0` | Zoom level (0.1–3.0) |
-| `return_image` | boolean | `true` | Return rendered image inline as base64 |
+| Parameter         | Type    | Default | Description                            |
+| ----------------- | ------- | ------- | -------------------------------------- |
+| `bundle_path`     | string  | —       | Path to bundle                         |
+| `output_path`     | string  | —       | Output PNG path                        |
+| `size`            | number  | `1024`  | Output size (16–2048)                  |
+| `appearance`      | enum    | —       | `dark` or `tinted`                     |
+| `flat`            | boolean | `false` | Force flat rendering                   |
+| `canvas_bg`       | enum    | —       | Preset background                      |
+| `apple_preset`    | enum    | —       | Apple wallpaper preset                 |
+| `canvas_bg_color` | string  | —       | Custom background hex                  |
+| `canvas_bg_image` | string  | —       | Background image path                  |
+| `zoom`            | number  | `1.0`   | Zoom level (0.1–3.0)                   |
+| `return_image`    | boolean | `true`  | Return rendered image inline as base64 |
 
 </details>
 
@@ -735,20 +774,20 @@ Render a preview PNG. Uses Liquid Glass by default, falls back to flat.
 
 Pixel-perfect Liquid Glass via Apple's ictool. Requires Icon Composer.app.
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `bundle_path` | string | — | Path to bundle |
-| `output_path` | string | — | Output PNG path |
-| `platform` | enum | `iOS` | `iOS`, `macOS`, `watchOS` |
-| `rendition` | enum | `Default` | `Default`, `Dark`, `TintedLight`, `TintedDark`, `ClearLight`, `ClearDark` |
-| `width` | number | `1024` | Output width (16–2048) |
-| `height` | number | `1024` | Output height (16–2048) |
-| `scale` | number | `1` | Scale factor (1–3) |
-| `light_angle` | number | — | Light angle (0–360) |
-| `tint_color` | number | — | Tint hue (0–1) |
-| `tint_strength` | number | — | Tint strength (0–1) |
-| Canvas options | — | — | Same as `export_preview` |
-| `return_image` | boolean | `true` | Return rendered image inline as base64 |
+| Parameter       | Type    | Default   | Description                                                               |
+| --------------- | ------- | --------- | ------------------------------------------------------------------------- |
+| `bundle_path`   | string  | —         | Path to bundle                                                            |
+| `output_path`   | string  | —         | Output PNG path                                                           |
+| `platform`      | enum    | `iOS`     | `iOS`, `macOS`, `watchOS`                                                 |
+| `rendition`     | enum    | `Default` | `Default`, `Dark`, `TintedLight`, `TintedDark`, `ClearLight`, `ClearDark` |
+| `width`         | number  | `1024`    | Output width (16–2048)                                                    |
+| `height`        | number  | `1024`    | Output height (16–2048)                                                   |
+| `scale`         | number  | `1`       | Scale factor (1–3)                                                        |
+| `light_angle`   | number  | —         | Light angle (0–360)                                                       |
+| `tint_color`    | number  | —         | Tint hue (0–1)                                                            |
+| `tint_strength` | number  | —         | Tint strength (0–1)                                                       |
+| Canvas options  | —       | —         | Same as `export_preview`                                                  |
+| `return_image`  | boolean | `true`    | Return rendered image inline as base64                                    |
 
 </details>
 
@@ -761,13 +800,13 @@ Pixel-perfect Liquid Glass via Apple's ictool. Requires Icon Composer.app.
 
 Opaque square marketing PNG for App Store Connect, with no alpha channel. Uses `ictool` for Liquid Glass when Icon Composer is installed and falls back to the flat composite. The corners `ictool` leaves transparent are filled from the flat composite.
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `bundle_path` | string | — | Path to bundle |
-| `output_path` | string | — | Output PNG path |
-| `size` | number | `1024` | Output size (16–2048) |
-| `flat` | boolean | `false` | Force flat rendering (skip ictool) |
-| `return_image` | boolean | `true` | Return rendered image inline as base64 |
+| Parameter      | Type    | Default | Description                            |
+| -------------- | ------- | ------- | -------------------------------------- |
+| `bundle_path`  | string  | —       | Path to bundle                         |
+| `output_path`  | string  | —       | Output PNG path                        |
+| `size`         | number  | `1024`  | Output size (16–2048)                  |
+| `flat`         | boolean | `false` | Force flat rendering (skip ictool)     |
+| `return_image` | boolean | `true`  | Return rendered image inline as base64 |
 
 </details>
 
@@ -775,11 +814,11 @@ Opaque square marketing PNG for App Store Connect, with no alpha channel. Uses `
 
 ### MCP Prompts
 
-| Prompt | Parameters | Description |
-|--------|------------|-------------|
-| `create-app-icon` | `image_path`, `output_dir`, `brand_color`, `dark_color?` | Guided workflow: create icon from a logo, preview, iterate, export |
-| `add-dark-mode` | `bundle_path`, `dark_color` | Add dark mode to an existing icon with before/after preview |
-| `export-for-app-store` | `bundle_path`, `output_dir` | Export marketing PNG + preview for App Store submission |
+| Prompt                 | Parameters                                               | Description                                                        |
+| ---------------------- | -------------------------------------------------------- | ------------------------------------------------------------------ |
+| `create-app-icon`      | `image_path`, `output_dir`, `brand_color`, `dark_color?` | Guided workflow: create icon from a logo, preview, iterate, export |
+| `add-dark-mode`        | `bundle_path`, `dark_color`                              | Add dark mode to an existing icon with before/after preview        |
+| `export-for-app-store` | `bundle_path`, `output_dir`                              | Export marketing PNG + preview for App Store submission            |
 
 ## Example Workflows
 
@@ -843,16 +882,15 @@ src/server.ts     MCP server (thin wrapper, 12 tools + 3 prompts)
 ## Contributing
 
 ```bash
-# Install dependencies
-bun install
-
-# Run tests
-bun test              # 175 unit tests
-npm run test:mcp      # 16 MCP integration tests
-
-# Build
-bun run build
-
-# Visual test gallery
-bun src/cli.ts visual-test --out ./gallery
+mise run setup       # install dependencies
+mise run test        # unit tests
+mise run test:mcp    # MCP integration tests (builds dist/ first)
+mise run check       # both
+mise run build       # npm package into dist/
+mise run build:bin   # standalone binaries into bin/
+mise run install     # build the binaries and copy them to ~/.local/bin
+mise run doctor      # check Icon Composer and ictool
+mise run gallery     # visual test gallery into gallery/
 ```
+
+`mise tasks` lists them. Each task wraps a `bun` command, so they also work without mise.

@@ -1,0 +1,52 @@
+[tools]
+bun = "1.4"
+fnox = { version = "latest", workflow = "release.yml" }
+hk = "latest"
+
+[tasks.setup]
+description = "Install dependencies"
+run = "bun install"
+
+[tasks.build]
+description = "Build the npm package into dist/ (tsup)"
+run = "bun run build"
+
+[tasks."build:bin"]
+description = "Compile the standalone icon-composer (CLI) and icon-composer-mcp (MCP server) binaries into bin/ (macOS only)"
+sources = ["src/**/*.ts", "scripts/build-binary.ts", "package.json", "bun.lock"]
+outputs = ["bin/icon-composer", "bin/icon-composer-mcp"]
+run = "bun run build:bin"
+
+[tasks.install]
+description = "Build both binaries and install them into ~/.local/bin"
+depends = ["build:bin"]
+run = [
+  "install -d ~/.local/bin",
+  "install -m 755 bin/icon-composer bin/icon-composer-mcp ~/.local/bin/",
+  "~/.local/bin/icon-composer --version",
+]
+
+[tasks.test]
+description = "Run the unit tests"
+run = "bun test"
+
+[tasks."test:mcp"]
+description = "Run the MCP integration tests against the built server"
+depends = ["build"]
+run = "bun run test:mcp"
+
+[tasks.check]
+description = "Run the unit and MCP integration tests"
+depends = ["test", "test:mcp"]
+
+[tasks.doctor]
+description = "Check Icon Composer and ictool from source"
+run = "bun run src/cli.ts doctor"
+
+[tasks.gallery]
+description = "Render the visual test gallery into gallery/"
+run = "bun run src/cli.ts visual-test --out ./gallery"
+
+[tasks.pre-commit]
+description = "Run the hk pre-commit hooks"
+run = "hk run pre-commit"
