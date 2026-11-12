@@ -1,0 +1,3 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7BD7FF"/><stop offset="1" stop-color="#0086D8"/></linearGradient></defs><path fill="url(#g)" fill-rule="evenodd" d="M244 352 H780 A112 112 0 0 1 892 464 V700 A112 112 0 0 1 780 812 H244 A112 112 0 0 1 132 700 V464 A112 112 0 0 1 244 352 Z M473.1 486.8 Q447 472 447.0 502.0 L447.0 662.0 Q447 692 473.1 677.2 L614.9 596.8 Q641 582 614.9 567.2 Z"/>
+</svg>
