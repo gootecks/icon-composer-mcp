@@ -1,0 +1,83 @@
+# Copy of hooks-lint-format/github/release.yml plus the repo-specific build step.
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install commitizen
+        run: pipx install commitizen==4.19.3
+
+      - name: Find the next version
+        id: next
+        run: |
+          code=0
+          version=$(cz bump --get-next) || code=$?
+          if [ "$code" -eq 21 ]; then
+            echo "No feat, fix or breaking commit since the last tag; nothing to release."
+            exit 0
+          fi
+          [ "$code" -eq 0 ] || exit "$code"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Bump version and changelog
+        if: steps.next.outputs.version != ''
+        env:
+          VERSION: ${{ steps.next.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          cz changelog --dry-run --unreleased-version "v$VERSION" | awk '/^## /{n++; next} n==1' > "$RUNNER_TEMP/notes.md"
+          cz bump --yes
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        if: steps.next.outputs.version != ''
+        with:
+          bun-version: latest
+          no-cache: true
+
+      - name: Build binaries
+        if: steps.next.outputs.version != ''
+        env:
+          VERSION: ${{ steps.next.outputs.version }}
+        run: |
+          bun install
+          bun run build:bin
+          [ "$(bin/icon-composer --version)" = "$VERSION" ]
+          asset="icon-composer-v$VERSION-darwin-arm64.tar.gz"
+          tar -czf "$asset" -C bin icon-composer icon-composer-mcp
+          shasum -a 256 "$asset" > "$asset.sha256"
+
+      - name: Push the bump commit and tag
+        if: steps.next.outputs.version != ''
+        env:
+          VERSION: ${{ steps.next.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: git push --atomic "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git" HEAD:main "v$VERSION"
+
+      - name: Create the GitHub Release
+        if: steps.next.outputs.version != ''
+        env:
+          VERSION: ${{ steps.next.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v$VERSION" --verify-tag --title "v$VERSION" --notes-file "$RUNNER_TEMP/notes.md" \
+            "icon-composer-v$VERSION-darwin-arm64.tar.gz" "icon-composer-v$VERSION-darwin-arm64.tar.gz.sha256"

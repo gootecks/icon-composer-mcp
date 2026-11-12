@@ -8,7 +8,8 @@ exclude = List(
     "bin/**",
     "gallery/**",
     "docs/**",
-    "fnox.local.toml"
+    "fnox.local.toml",
+    "CHANGELOG.md"
 )
 
 steps {
