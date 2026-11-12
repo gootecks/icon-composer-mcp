@@ -236,9 +236,11 @@ Each binary is about 100 MB: the Bun runtime is about 88 MB, plus libvips at 16 
 
 - **Node.js 18+**
 - **macOS** with [Icon Composer](https://developer.apple.com/icon-composer/) for Liquid Glass rendering
+
   ```bash
   brew install --cask icon-composer
   ```
+
 - Flat previews, bundle creation/editing, and marketing export work on **any platform** without Icon Composer
 
 Run `icon-composer doctor` to check your setup.
@@ -612,12 +614,12 @@ Add a layer to an existing bundle.
 
 ### `remove_layer`
 
-Remove a layer or group. `layer_index` required when `target=layer`.
+Remove a layer or group. `target` is `layer` or `group`; `layer_index` is required when `target=layer`.
 
 | Parameter        | Type    | Required | Default |
 | ---------------- | ------- | -------- | ------- |
 | `bundle_path`    | string  | yes      | —       |
-| `target`         | enum    | yes      | —       | `layer` or `group` |
+| `target`         | enum    | yes      | —       |
 | `group_index`    | number  | yes      | —       |
 | `layer_index`    | number  | no       | —       |
 | `cleanup_assets` | boolean | no       | `true`  |
@@ -906,7 +908,7 @@ icon-composer render ./out/AppIcon.icon glass-preview.png
 
 ## Architecture
 
-```
+```text
 src/lib/          Pure library (bundle, manifest, render, ictool)
 src/lib/ops-*.ts  Operations layer (MCP result format)
 src/cli.ts        CLI (Commander.js, 15 commands)
