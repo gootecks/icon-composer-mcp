@@ -149,24 +149,17 @@ at build time. Plan for four groups at most.
 ## App Store export
 
 - A Mac app needs no separate upload: App Store Connect takes the icon from the build.
-- `export_marketing` uses the flat compositor, which does not match Icon Composer for
-  multi-layer bundles: it shrinks the glyph, drops the gradient fill, and reverses the
-  layer order. Look at its output before trusting it.
-- Workaround for an opaque 1024 PNG that matches the real render: render with
-  `render_liquid_glass` (`platform: "iOS"`, `Default`), then composite it over the
-  background to remove the transparent corners. Use the background gradient, or the
-  texture PNG if the icon has one (`magick texture.png ios.png -composite -alpha off out.png`).
-  A faint rim stays visible at the corners.
-
-  ```bash
-  ffmpeg -y -loglevel error -f lavfi \
-    -i "gradients=s=1024x1024:c0=0xTOPHEX:c1=0xBOTTOMHEX:x0=512:y0=0:x1=512:y1=1024:d=1" \
-    -i ios.png -filter_complex "[0][1]overlay=format=auto,format=rgb24" -frames:v 1 marketing-1024.png
-  sips -g hasAlpha marketing-1024.png
-  ```
-
-- ImageMagick writes these composites as 16-bit PNGs. Add `-depth 8 -strip`; a 1024 px
-  icon went from 1.8 MB to 0.5 MB.
+- `export_marketing` writes the opaque, square 1024 PNG. It renders with Liquid Glass
+  through `ictool` and fills the transparent corners from a flat composite of the same
+  layers. A faint rim stays visible at the corners. Check the result with
+  `sips -g hasAlpha marketing-1024.png`.
+- Without Icon Composer, or with `flat: true`, it writes the flat composite alone: correct
+  layout and fill, no glass.
+- Versions before the gootecks fork's PR #4 shrink the glyph, drop the gradient fill and
+  reverse the layer order. If the output looks like that, rebuild the binaries with
+  `mise run install` in the icon-composer-mcp checkout.
+- ImageMagick writes contact sheets and other composites as 16-bit PNGs. Add
+  `-depth 8 -strip`; a 1024 px icon went from 1.8 MB to 0.5 MB.
 
 ## Glyph SVG rules
 
