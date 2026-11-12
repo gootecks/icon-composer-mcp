@@ -1,11 +1,35 @@
 amends "package://github.com/jdx/hk/releases/download/v2.12.0/hk@2.12.0#/Config.pkl"
 import "package://github.com/jdx/hk/releases/download/v2.12.0/hk@2.12.0#/Builtins.pkl"
-// Using a coding agent? See https://hk.jdx.dev/agents
 
-local linters = new Mapping {
+exclude = List(
+    ".omp/**",
+    ".agents/**",
+    "dist/**",
+    "bin/**",
+    "gallery/**",
+    "docs/**",
+    "fnox.local.toml"
+)
+
+steps {
     ["actionlint"] = Builtins.actionlint
-    ["prettier"] = Builtins.prettier
     ["zizmor"] = Builtins.zizmor
 }
 
-steps = linters
+hooks {
+    ["check"] {
+        fix = false
+        stage = false
+        stash = "none"
+    }
+    ["fix"] {
+        fix = true
+        stage = false
+        stash = "none"
+    }
+    ["pre-commit"] {
+        fix = true
+        stage = true
+        stash = "git"
+    }
+}
