@@ -19,6 +19,7 @@
   ],
   "scripts": {
     "build": "tsup && chmod +x dist/cli.js dist/server.js",
+    "build:bin": "bun scripts/build-binary.ts bin",
     "prepublishOnly": "tsup && chmod +x dist/cli.js dist/server.js",
     "start": "node dist/server.js",
     "cli": "node dist/cli.js",
@@ -27,6 +28,11 @@
     "test": "bun test",
     "test:mcp": "vitest run",
     "doctor": "node dist/cli.js doctor"
+  },
+  "config": {
+    "commitizen": {
+      "path": "node_modules/cz-git"
+    }
   },
   "mcpName": "io.github.ethbak/icon-composer-mcp",
   "keywords": [
@@ -67,6 +73,7 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@types/sharp": "^0.32.0",
+    "cz-git": "^1.14.0",
     "tsup": "^8.5.1",
     "typescript": "^5",
     "vitest": "^4.1.2"

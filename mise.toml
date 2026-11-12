@@ -1,0 +1,6 @@
+[tools]
+fnox = { version = "latest", workflow = "release.yml" }
+hk = "latest"
+
+[tasks.pre-commit]
+run = "hk run pre-commit"

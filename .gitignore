@@ -4,6 +4,7 @@ node_modules
 # output
 out
 dist
+bin
 *.tgz
 
 # code coverage
@@ -40,7 +41,11 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 CLAUDE.md
 TODO.md
 docs/
-scripts/
+scripts/*
+!scripts/build-binary.ts
 index.ts
 gallery/
 .claude/
+
+# fnox encrypted local cache
+fnox.local.toml
