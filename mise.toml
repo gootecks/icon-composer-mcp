@@ -8,6 +8,17 @@ rumdl = "0.3.2"
 "npm:oxfmt" = "0.77.0"
 "npm:oxlint" = "1.92.0"
 
+[env]
+OXLINT_TSGOLINT_PATH = "{{env.HOME}}/.local/bin/tsrs-lint"
+
+[tasks."tsrs:install"]
+description = "Build tsrs and tsrs-lint from a local oxc-project/tsrs checkout into ~/.local/bin (TSRS_DIR, default ../../tsrs)"
+run = [
+  "cargo install --locked --path ${TSRS_DIR:-../../tsrs}/crates/tsrs_cli --root ~/.local",
+  "cargo install --locked --path ${TSRS_DIR:-../../tsrs}/crates/tsrs_lint --root ~/.local",
+  "~/.local/bin/tsrs --version",
+]
+
 [tasks.setup]
 description = "Install dependencies"
 run = "bun install"

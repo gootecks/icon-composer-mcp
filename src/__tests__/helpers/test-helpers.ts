@@ -110,10 +110,7 @@ export async function createFixtureBundle(
   return writeIconBundle(dir, name, manifest, assets);
 }
 
-// Extract the MCP response text from a handler result
-export function responseText(result: { content: { type: string; text: string }[] }): string {
-  return result.content[0]?.text ?? '';
-}
+export { resultText as responseText } from '../../types';
 
 // Check if a handler result is an error
 export function isErrorResult(result: { isError?: boolean }): boolean {

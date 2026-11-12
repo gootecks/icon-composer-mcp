@@ -14,7 +14,10 @@ exclude = List(
 steps {
     ["actionlint"] = Builtins.actionlint
     ["oxfmt"] = Builtins.oxfmt
-    ["oxlint"] = Builtins.ox_lint
+    ["oxlint"] = (Builtins.ox_lint) {
+        check = "oxlint --type-aware --type-check --deny-warnings {{files}}"
+        fix = "oxlint --type-aware --type-check --deny-warnings --fix {{files}}"
+    }
     ["rumdl"] {
         glob = "**/*.md"
         depends = "oxfmt"
