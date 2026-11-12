@@ -159,11 +159,11 @@ export async function exportPreview(params: ExportPreviewParams): Promise<McpRes
               }
             }
             await saveManifest(params.bundle_path, manifest);
-            await fs.unlink(tmpLarge).catch(() => {});
+            await fs.unlink(tmpLarge).catch(() => { });
           }
         }
       } finally {
-        await fs.unlink(tmpPath).catch(() => {});
+        await fs.unlink(tmpPath).catch(() => { });
       }
       renderer = 'liquid-glass';
     } else {
@@ -256,20 +256,41 @@ export interface ExportMarketingParams {
   bundle_path: string;
   output_path: string;
   size?: number;
+  flat?: boolean;
   return_image?: boolean;
 }
 
 /**
- * Export a flat 1024x1024 (default) marketing PNG for App Store Connect.
- * No glass effects, no alpha channel.
+ * Export an opaque, square 1024x1024 (default) marketing PNG for App Store Connect.
+ * Liquid Glass via ictool when available; the flat composite fills the corners
+ * ictool leaves transparent, and is the whole image when ictool is missing.
  */
 export async function exportMarketing(params: ExportMarketingParams): Promise<McpResult> {
   try {
     const size = params.size ?? 1024;
     const { manifest, assets } = await readIconBundle(params.bundle_path);
 
-    // Render flat preview (no ictool, no glass)
     let buffer = await renderPreview(manifest, assets, size);
+    let renderer = 'flat';
+
+    if (!params.flat && await ictoolAvailable()) {
+      const tmpPath = params.output_path + '.ictool.png';
+      try {
+        await renderWithIctool({
+          bundlePath: params.bundle_path,
+          outputPath: tmpPath,
+          width: size,
+          height: size,
+        });
+        buffer = await sharp(buffer)
+          .composite([{ input: await fs.readFile(tmpPath), left: 0, top: 0 }])
+          .png()
+          .toBuffer();
+      } finally {
+        await fs.unlink(tmpPath).catch(() => { });
+      }
+      renderer = 'liquid-glass';
+    }
 
     const fill = resolveFill(manifest);
     const bgColor = fill && typeof fill === 'object' && 'solid' in fill
@@ -281,7 +302,7 @@ export async function exportMarketing(params: ExportMarketingParams): Promise<Mc
 
     const stat = await fs.stat(params.output_path);
     const content: McpContentBlock[] = [
-      { type: 'text', text: `Exported marketing icon to ${params.output_path} (${size}x${size}, no alpha, ${(stat.size / 1024).toFixed(1)} KB)` },
+      { type: 'text', text: `Exported marketing icon to ${params.output_path} (${size}x${size}, ${renderer}, no alpha, ${(stat.size / 1024).toFixed(1)} KB)` },
     ];
     if (params.return_image !== false && buffer.length <= MAX_INLINE_IMAGE_BYTES) {
       content.push({ type: 'image', data: buffer.toString('base64'), mimeType: 'image/png' });

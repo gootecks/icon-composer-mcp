@@ -375,6 +375,26 @@ describe('exportMarketing', () => {
     expect(meta.channels).toBe(3);
   });
 
+  test('uses Liquid Glass by default and stays opaque; flat skips it', async () => {
+    if (!await ictoolAvailable()) return; // skip
+
+    const bundlePath = await createFixtureBundle(tmpDir, 'marketing-glass');
+    const glassPath = path.join(tmpDir, 'glass.png');
+    const flatPath = path.join(tmpDir, 'flat.png');
+
+    const glass = await exportMarketing({ bundle_path: bundlePath, output_path: glassPath, size: 256 });
+    const flat = await exportMarketing({ bundle_path: bundlePath, output_path: flatPath, size: 256, flat: true });
+    expect(isErrorResult(glass)).toBe(false);
+    expect(isErrorResult(flat)).toBe(false);
+
+    const glassBuf = await fs.readFile(glassPath);
+    const meta = await sharp(glassBuf).metadata();
+    expect(meta.width).toBe(256);
+    expect(meta.channels).toBe(3);
+    expect(glassBuf.equals(await fs.readFile(flatPath))).toBe(false);
+    await expect(fs.access(glassPath + '.ictool.png')).rejects.toThrow();
+  });
+
   test('returns error for invalid bundle', async () => {
     const result = await exportMarketing({
       bundle_path: '/nonexistent/bundle.icon',

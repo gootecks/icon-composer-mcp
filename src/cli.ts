@@ -373,16 +373,18 @@ program
 
 program
   .command('export-marketing')
-  .description('Export flat marketing PNG for App Store Connect (no alpha)')
+  .description('Export opaque marketing PNG for App Store Connect (Liquid Glass via ictool, no alpha)')
   .argument('<bundle_path>', 'Path to the .icon bundle')
   .argument('<output_path>', 'Output PNG path')
   .option('--size <n>', 'Output size in pixels', toInt, 1024)
+  .option('--flat', 'Force flat rendering (no ictool)', false)
   .action(async (bundle_path, output_path, opts) => {
     await run(() =>
       exportMarketing({
         bundle_path,
         output_path,
         size: opts.size,
+        flat: opts.flat,
       }),
     );
   });

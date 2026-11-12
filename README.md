@@ -219,7 +219,7 @@ Run `icon-composer doctor` to check your setup.
 | `fx` | Toggle all glass effects on/off |
 | `preview` | Export a preview PNG (Liquid Glass or flat) |
 | `render` | Render pixel-perfect Liquid Glass via ictool |
-| `export-marketing` | Export flat 1024x1024 PNG for App Store Connect (no alpha) |
+| `export-marketing` | Export opaque 1024x1024 PNG for App Store Connect (no alpha) |
 | `doctor` | Check system setup and dependencies |
 
 ### Details
@@ -461,10 +461,10 @@ icon-composer render <bundle_path> <output_path> [options]
 &nbsp;
 
 ```bash
-icon-composer export-marketing <bundle_path> <output_path> [--size <n>]
+icon-composer export-marketing <bundle_path> <output_path> [--size <n>] [--flat]
 ```
 
-**Output:** Flat PNG with no alpha channel (avoids ITMS-90717 rejection). Default 1024x1024.
+**Output:** Opaque square PNG with no alpha channel (avoids ITMS-90717 rejection). Default 1024x1024. Rendered with Liquid Glass via `ictool` when Icon Composer is installed; otherwise, or with `--flat`, a flat composite.
 
 </details>
 
@@ -498,7 +498,7 @@ icon-composer doctor
 | `toggle_fx` | Enable/disable all glass effects at once |
 | `export_preview` | Render a preview PNG |
 | `render_liquid_glass` | Render via Apple's ictool (requires Icon Composer) |
-| `export_marketing` | Export flat opaque PNG for App Store Connect |
+| `export_marketing` | Export opaque PNG for App Store Connect (Liquid Glass via ictool, flat fallback) |
 
 All tools return `{ content: [{ type: "text", text: "..." }], isError?: true }`.
 
@@ -759,13 +759,14 @@ Pixel-perfect Liquid Glass via Apple's ictool. Requires Icon Composer.app.
 
 ### `export_marketing`
 
-Flat marketing PNG for App Store Connect. No glass effects, no alpha channel.
+Opaque square marketing PNG for App Store Connect, with no alpha channel. Uses `ictool` for Liquid Glass when Icon Composer is installed and falls back to the flat composite. The corners `ictool` leaves transparent are filled from the flat composite.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `bundle_path` | string | — | Path to bundle |
 | `output_path` | string | — | Output PNG path |
 | `size` | number | `1024` | Output size (16–2048) |
+| `flat` | boolean | `false` | Force flat rendering (skip ictool) |
 | `return_image` | boolean | `true` | Return rendered image inline as base64 |
 
 </details>
@@ -801,7 +802,7 @@ icon-composer preview ./out/AppIcon.icon preview.png
 ### Export for App Store
 
 ```bash
-# Marketing icon (flat, no alpha, 1024x1024)
+# Marketing icon (no alpha, 1024x1024)
 icon-composer export-marketing ./out/AppIcon.icon marketing.png
 
 # The .icon bundle goes into your Xcode project's asset catalog
