@@ -63,9 +63,9 @@ function text(result: any): string {
 // ── Discovery ──
 
 describe('discovery', () => {
-  test('lists all 12 tools', async () => {
+  test('lists all 13 tools', async () => {
     const { tools } = await client.listTools();
-    expect(tools.length).toBe(12);
+    expect(tools.length).toBe(13);
   });
 
   test('lists all 3 prompts', async () => {

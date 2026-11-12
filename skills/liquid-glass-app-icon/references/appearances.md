@@ -19,9 +19,10 @@ Move the accent into its own top group and turn the glass off:
 - group: `specular: false`, shadow `none`, translucency disabled
 - layer: `glass: false`
 
-The first entry in `groups` is the top group. No tool moves an existing layer between
-groups, so edit `icon.json`: cut the layer's entry out of its group's `layers` array and
-add this as the first entry of `groups`, with the layer entry unchanged apart from `glass`:
+The first entry in `groups` is the top group. Move the layer with `move_layer`
+(`group_index`, `layer_index`, `create_group: true`, `group_name: "Accent"`), which puts
+the new group on top. Then call `set_glass_effects` on group 0 for the group settings,
+and set `glass: false` on the layer in `icon.json`. The group should end up like this:
 
 ```json
 {

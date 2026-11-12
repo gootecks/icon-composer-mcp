@@ -49,8 +49,7 @@ Paths are relative to this skill's folder.
 3. **Concepts.** Read `references/design-notes.md`. Draw three glyph SVGs that differ in
    idea, not just in detail. Follow the glyph rules below. One SVG per concept is fine
    at this stage.
-4. **Build.** For each concept call `create_icon` with `glyph_scale: 2.56` (see "Tool
-   gotchas" for why), then `set_fill`.
+4. **Build.** For each concept call `create_icon` with `glyph_scale: 1.0`, then `set_fill`.
 5. **Render.** Call `render_liquid_glass` with `platform` set to the target
    (`macOS` for Mac apps), `width` and `height` 1024. The appearance parameter is
    named `rendition`; render `Default` for concepts.
@@ -107,13 +106,13 @@ at build time. Plan for four groups at most, and run `scripts/actool-check.sh` t
 
 - Layers in one group share glass settings and cast no shadow on each other.
 - Spend the groups on the shadows that matter most, such as a button over its base.
-- Merge the rest by moving their entries into one group's `layers` array, top layer first.
+- Merge the rest with `move_layer` into one group, top layer first.
 
 ## Glyph SVG rules
 
 - Use a `viewBox="0 0 1024 1024"` canvas and draw the glyph at its final size and position.
-  Keep important shapes inside roughly 100 to 924 on both axes. With the scale values
-  under "Tool gotchas", the canvas maps about one to one onto the rendered tile.
+  Keep important shapes inside roughly 100 to 924 on both axes. At scale 1.0 the canvas
+  maps about one to one onto the rendered tile.
 - Use filled `<path>` or `<circle>` shapes only. Stroke-only paths render as solid black
   fills, so convert every stroke to a filled outline. Do not use `<text>`.
 - Draw the glyph in white (`#FFFFFF`). Icon Composer recolors white layers with the
@@ -133,15 +132,14 @@ at build time. Plan for four groups at most, and run `scripts/actool-check.sh` t
 
 ## Tool gotchas
 
-- `glyph_scale` means two different things, so check the first render against the SVG.
-  - With `split_layers: true` (the default) each shape is written as a 400 px SVG, so
-    `1.0` draws the glyph at 39% of its size. Pass `glyph_scale: 2.56` (1024 / 400) to
-    get the drawing at the size it has on the canvas.
-  - With `split_layers: false` the SVG is copied as it is, so `1.0` is full size and the
-    default `1.75` blows the glyph past the icon edge.
-  - `add_layer_to_icon` copies the file as it is too: use scale `1.0`.
+- `create_icon` defaults `glyph_scale` to 1.75, which blows a full-canvas glyph past the
+  icon edge. Always pass `glyph_scale: 1.0`. `add_layer_to_icon` defaults to `1.0`.
+- If a split-layer glyph renders at about 40% size, the installed `icon-composer` is
+  older than the fix for viewBox-only SVGs. Update it, or pass `glyph_scale: 2.56`.
 - `set_fill` with `fill_type: "gradient"`: `color` renders at the **top** and `color2`
-  at the bottom when `gradient_angle` is 0. The tool description says the opposite.
+  at the bottom when `gradient_angle` is 0.
+- `move_layer` moves a layer to another group or position. With `create_group: true` the
+  new group goes on top unless `to_group_index` says otherwise.
 - `export_preview` renders the iOS shape only. Use `render_liquid_glass` with
   `platform: "macOS"` to see the macOS tile.
 - Pass `return_image: false` when the agent cannot display inline images, then read the PNG file.

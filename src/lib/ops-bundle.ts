@@ -46,6 +46,16 @@ export interface RemoveParams {
   cleanup_assets: boolean;
 }
 
+export interface MoveLayerParams {
+  bundle_path: string;
+  group_index: number;
+  layer_index: number;
+  to_group_index?: number;
+  to_layer_index?: number;
+  create_group?: boolean;
+  group_name?: string;
+}
+
 // ── Operations ──
 
 export async function createIcon(params: CreateIconParams): Promise<McpResult> {
@@ -236,6 +246,69 @@ export async function removeFromBundle(params: RemoveParams): Promise<McpResult>
 
     return {
       content: [{ type: 'text', text: `Removed ${removedDesc} from ${params.bundle_path}` }],
+    };
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    return {
+      content: [{ type: 'text', text: `Error: ${msg}` }],
+      isError: true,
+    };
+  }
+}
+
+export async function moveLayer(params: MoveLayerParams): Promise<McpResult> {
+  try {
+    const { manifest } = await readIconBundle(params.bundle_path);
+    const groups = manifest.groups;
+    const fail = (text: string): McpResult => ({ content: [{ type: 'text', text }], isError: true });
+
+    if (!Number.isInteger(params.group_index) || params.group_index < 0 || params.group_index >= groups.length) {
+      return fail(`Error: Group index ${params.group_index} out of range (${groups.length} groups)`);
+    }
+    const srcGroup = groups[params.group_index];
+    if (!Number.isInteger(params.layer_index) || params.layer_index < 0 || params.layer_index >= srcGroup.layers.length) {
+      return fail(`Error: Layer index ${params.layer_index} out of range (group has ${srcGroup.layers.length} layers)`);
+    }
+
+    const createGroup = params.create_group ?? false;
+    if (params.to_group_index === undefined && !createGroup) {
+      return fail('Error: to_group_index is required unless create_group is true');
+    }
+    const toGroupIndex = params.to_group_index ?? 0;
+    if (createGroup) {
+      if (!Number.isInteger(toGroupIndex) || toGroupIndex < 0 || toGroupIndex > groups.length) {
+        return fail(`Error: Destination group index ${toGroupIndex} out of range (valid insert positions 0-${groups.length})`);
+      }
+    } else if (!Number.isInteger(toGroupIndex) || toGroupIndex < 0 || toGroupIndex >= groups.length) {
+      return fail(`Error: Destination group index ${toGroupIndex} out of range (${groups.length} groups)`);
+    }
+
+    const [layer] = srcGroup.layers.splice(params.layer_index, 1);
+
+    let destGroup;
+    if (createGroup) {
+      destGroup = addGroup(manifest, { name: params.group_name ?? sanitizeFilename(layer.name) });
+      groups.pop();
+      groups.splice(toGroupIndex, 0, destGroup);
+    } else {
+      destGroup = groups[toGroupIndex];
+    }
+
+    const toLayerIndex = Math.max(0, Math.min(params.to_layer_index ?? 0, destGroup.layers.length));
+    destGroup.layers.splice(toLayerIndex, 0, layer);
+
+    if (srcGroup.layers.length === 0) {
+      groups.splice(groups.indexOf(srcGroup), 1);
+    }
+
+    await saveManifest(params.bundle_path, manifest);
+
+    const finalGroupIndex = groups.indexOf(destGroup);
+    return {
+      content: [{
+        type: 'text',
+        text: `Moved layer "${layer.name}" from group ${params.group_index} (layer ${params.layer_index}) to ${createGroup ? 'new ' : ''}group ${finalGroupIndex} (layer ${toLayerIndex}) in ${params.bundle_path}`,
+      }],
     };
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Unknown error';
