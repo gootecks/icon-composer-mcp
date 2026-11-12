@@ -3,15 +3,12 @@ import sharp from 'sharp';
 import { readIconBundle, saveManifest } from './bundle';
 import { renderPreview, compositeOnBackground, type CanvasBackground, type ApplePresetName } from './render';
 import { resolveFill } from './manifest';
+import { parseColorString } from './flat-compose';
 import { ictoolAvailable, renderWithIctool, CLEAR_RENDITIONS } from './ictool';
 import { stripAlpha } from './image-utils';
 import type { IconManifest, McpResult, McpContentBlock } from '../types';
 
 const MAX_INLINE_IMAGE_BYTES = 4 * 1024 * 1024; // 4 MB
-
-// ictool and Icon Composer use the manifest scale values directly.
-// scale=1.0 renders at ~65% of icon area — this is Apple's native behavior.
-// Our flat renderer applies the same 0.65 factor to match.
 
 export interface ExportPreviewParams {
   bundle_path: string;
@@ -274,19 +271,10 @@ export async function exportMarketing(params: ExportMarketingParams): Promise<Mc
     // Render flat preview (no ictool, no glass)
     let buffer = await renderPreview(manifest, assets, size);
 
-    // Determine background color from manifest fill for alpha flattening
     const fill = resolveFill(manifest);
-    let bgColor = { r: 255, g: 255, b: 255 };
-    if (fill && typeof fill === 'object' && 'solid' in fill) {
-      const parts = fill.solid.split(':')[1]?.split(',').map(Number);
-      if (parts && parts.length >= 3) {
-        bgColor = {
-          r: Math.round(parts[0] * 255),
-          g: Math.round(parts[1] * 255),
-          b: Math.round(parts[2] * 255),
-        };
-      }
-    }
+    const bgColor = fill && typeof fill === 'object' && 'solid' in fill
+      ? parseColorString(fill.solid)
+      : { r: 255, g: 255, b: 255 };
 
     buffer = await stripAlpha(buffer, bgColor);
     await fs.writeFile(params.output_path, buffer);

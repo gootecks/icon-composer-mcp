@@ -3,22 +3,7 @@ import { existsSync } from 'node:fs';
 import * as path from 'node:path';
 import sharp from 'sharp';
 import type { IconManifest } from '../types';
-import { resolveFill } from './manifest';
-
-// Parse an Apple color string like "srgb:0.50000,0.00000,1.00000,1.00000" to RGBA
-function parseColorString(cs: string): { r: number; g: number; b: number; alpha: number } {
-  const fallback = { r: 255, g: 255, b: 255, alpha: 1 };
-  const parts = cs.split(':')[1]?.split(',').map(Number);
-  if (!parts || parts.length < 4 || parts.some(isNaN)) {
-    return fallback;
-  }
-  return {
-    r: Math.round(parts[0] * 255),
-    g: Math.round(parts[1] * 255),
-    b: Math.round(parts[2] * 255),
-    alpha: parts[3],
-  };
-}
+import { resolveFlatBackground, buildLayerOverlays } from './flat-compose';
 
 // Generate a checkerboard pattern as a PNG buffer
 export async function generateCheckerboard(size: number, cellSize: number = 32): Promise<Buffer> {
@@ -289,133 +274,19 @@ export async function renderPreview(
   size: number = 1024,
   appearance?: 'dark' | 'tinted'
 ): Promise<Buffer> {
-  // Start with background
-  let bgColor = { r: 255, g: 255, b: 255, alpha: 1 };
-  let gradientOverlay: Buffer | null = null;
+  const background = await resolveFlatBackground(manifest, assets, size, appearance);
+  const overlays: sharp.OverlayOptions[] = [];
+  if ('image' in background) overlays.push({ input: background.image, left: 0, top: 0 });
+  overlays.push(...await buildLayerOverlays(manifest, assets, size, appearance));
 
-  const fill = resolveFill(manifest, appearance);
-
-  if (fill === 'none') {
-    bgColor = { r: 0, g: 0, b: 0, alpha: 0 };
-  } else if (fill === 'automatic') {
-    // Sample dominant color from first layer asset
-    const firstAsset = manifest.groups[0]?.layers[0]?.['image-name'];
-    const buf = firstAsset ? assets.get(firstAsset) : undefined;
-    if (buf) {
-      const { dominant } = await sharp(buf).stats();
-      bgColor = { r: dominant.r, g: dominant.g, b: dominant.b, alpha: 1 };
-    }
-  } else if (fill && typeof fill === 'object' && 'solid' in fill) {
-    bgColor = parseColorString(fill.solid);
-  } else if (fill && typeof fill === 'object' && 'linear-gradient' in fill) {
-    const c1 = parseColorString(fill['linear-gradient'][0]);
-    const c2 = parseColorString(fill['linear-gradient'][1]);
-    const { start, stop } = fill.orientation;
-    // Generate gradient as SVG, then rasterize
-    const angle = Math.atan2(stop.x - start.x, start.y - stop.y) * (180 / Math.PI);
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
-      <defs><linearGradient id="g" x1="${start.x}" y1="${start.y}" x2="${stop.x}" y2="${stop.y}">
-        <stop offset="0%" stop-color="rgb(${c1.r},${c1.g},${c1.b})" stop-opacity="${c1.alpha}"/>
-        <stop offset="100%" stop-color="rgb(${c2.r},${c2.g},${c2.b})" stop-opacity="${c2.alpha}"/>
-      </linearGradient></defs>
-      <rect width="${size}" height="${size}" fill="url(#g)"/>
-    </svg>`;
-    gradientOverlay = await sharp(Buffer.from(svg)).png().toBuffer();
-    bgColor = { r: 0, g: 0, b: 0, alpha: 0 };
-  }
-
-  let composite = sharp({
+  const canvas = sharp({
     create: {
       width: size,
       height: size,
       channels: 4,
-      background: bgColor,
+      background: 'color' in background ? background.color : { r: 0, g: 0, b: 0, alpha: 0 },
     },
   }).png();
 
-  const compositeInputs: sharp.OverlayOptions[] = [];
-
-  if (gradientOverlay) {
-    compositeInputs.push({ input: gradientOverlay, left: 0, top: 0 });
-  }
-
-  // Composite each layer from each group
-  for (const group of manifest.groups) {
-    const groupOpacity = group.opacity ?? 1.0;
-
-    for (const layer of group.layers) {
-      if (layer.hidden) continue;
-
-      const imageName = layer['image-name'];
-      const assetBuffer = assets.get(imageName);
-      if (!assetBuffer) continue;
-
-      const layerOpacity = (layer.opacity ?? 1.0) * groupOpacity;
-      const pos = layer.position;
-      const scale = pos?.scale ?? 1.0;
-      const [offX, offY] = pos?.['translation-in-points'] ?? [0, 0];
-
-      // Apple's ictool/Icon Composer renders scale=1.0 at ~39% of the output
-      // canvas (65% of icon area × 60% squircle inset). Our flat renderer must
-      // match this so glyph sizes are consistent across all outputs.
-      const APPLE_NATIVE_SCALE = 0.39;
-
-      // Detect actual content bounds by trimming transparent pixels.
-      // This compensates for SVGs/PNGs with transparent padding.
-      const origMeta = await sharp(assetBuffer).metadata();
-      const origMax = Math.max(origMeta.width ?? 1, origMeta.height ?? 1);
-      let contentRatio = 1.0;
-      try {
-        const trimmed = await sharp(assetBuffer).trim().toBuffer({ resolveWithObject: true });
-        const trimMax = Math.max(trimmed.info.width, trimmed.info.height);
-        contentRatio = trimMax / origMax;
-      } catch {
-        // trim() fails on fully transparent or single-color images — use 1.0
-      }
-
-      const layerSize = Math.round(size * scale * APPLE_NATIVE_SCALE / contentRatio);
-      let layerImage = sharp(assetBuffer).resize(layerSize, layerSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } });
-
-      if (layerOpacity < 1.0) {
-        // Apply opacity by compositing with transparency
-        const buf = await layerImage.ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-        const pixels = buf.data;
-        for (let i = 3; i < pixels.length; i += 4) {
-          pixels[i] = Math.round(pixels[i] * layerOpacity);
-        }
-        layerImage = sharp(pixels, { raw: { width: buf.info.width, height: buf.info.height, channels: 4 } }).png();
-      }
-
-      let layerBuf = await layerImage.toBuffer();
-
-      let left = Math.round((size - layerSize) / 2 + offX);
-      let top = Math.round((size - layerSize) / 2 + offY);
-
-      // If the layer exceeds the canvas, crop it to fit
-      if (left < 0 || top < 0 || layerSize > size) {
-        const cropLeft = Math.max(0, -left);
-        const cropTop = Math.max(0, -top);
-        const cropWidth = Math.min(layerSize - cropLeft, size);
-        const cropHeight = Math.min(layerSize - cropTop, size);
-        layerBuf = await sharp(layerBuf)
-          .extract({ left: cropLeft, top: cropTop, width: cropWidth, height: cropHeight })
-          .png()
-          .toBuffer();
-        left = Math.max(0, left);
-        top = Math.max(0, top);
-      }
-
-      compositeInputs.push({
-        input: layerBuf,
-        left,
-        top,
-      });
-    }
-  }
-
-  if (compositeInputs.length > 0) {
-    composite = composite.composite(compositeInputs);
-  }
-
-  return composite.toBuffer();
+  return (overlays.length > 0 ? canvas.composite(overlays) : canvas).toBuffer();
 }

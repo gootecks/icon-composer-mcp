@@ -163,6 +163,97 @@ describe('renderPreview', () => {
     const buf = await renderPreview(manifest, new Map(), 4);
     expect(buf).toBeInstanceOf(Buffer);
   });
+
+  describe('flat compositing', () => {
+    const SIZE = 64;
+    const solidPng = (r: number, g: number, b: number) =>
+      sharp({ create: { width: SIZE, height: SIZE, channels: 4, background: { r, g, b, alpha: 1 } } }).png().toBuffer();
+    const layer = (name: string, extra: object = {}) => ({ 'image-name': name, name, ...extra });
+
+    test('first group and first layer paint on top', async () => {
+      const assets = new Map([
+        ['red.png', await solidPng(255, 0, 0)],
+        ['green.png', await solidPng(0, 255, 0)],
+        ['blue.png', await solidPng(0, 0, 255)],
+      ]);
+      const manifest: IconManifest = {
+        groups: [
+          { layers: [layer('red.png'), layer('green.png')] },
+          { layers: [layer('blue.png')] },
+        ],
+        'supported-platforms': {},
+      };
+      const { data, width } = await getPixels(await renderPreview(manifest, assets, SIZE));
+      expect(pixelAt(data, 32, 32, width)).toEqual([255, 0, 0, 255]);
+
+      manifest.groups[0].layers.shift();
+      const next = await getPixels(await renderPreview(manifest, assets, SIZE));
+      expect(pixelAt(next.data, 32, 32, next.width)).toEqual([0, 255, 0, 255]);
+    });
+
+    test('linear gradient from fill-specializations is drawn with y axis pointing up', async () => {
+      const manifest: IconManifest = {
+        groups: [],
+        'supported-platforms': {},
+        'fill-specializations': [
+          {
+            value: {
+              'linear-gradient': ['srgb:1,1,1,1', 'srgb:0,0,0,1'],
+              orientation: { start: { x: 0.5, y: 1 }, stop: { x: 0.5, y: 0 } },
+            },
+          },
+        ],
+      };
+      const { data, width } = await getPixels(await renderPreview(manifest, new Map(), SIZE));
+      const top = pixelAt(data, 32, 1, width);
+      const bottom = pixelAt(data, 32, SIZE - 2, width);
+      expect(top[0]).toBeGreaterThan(230);
+      expect(bottom[0]).toBeLessThan(25);
+    });
+
+    test('top-level fill takes precedence over the default fill specialization', async () => {
+      const manifest: IconManifest = {
+        groups: [],
+        'supported-platforms': {},
+        fill: { solid: 'srgb:1,0,0,1' },
+        'fill-specializations': [{ value: { solid: 'srgb:0,0,1,1' } }],
+      };
+      const { data, width } = await getPixels(await renderPreview(manifest, new Map(), SIZE));
+      expect(pixelAt(data, 5, 5, width)).toEqual([255, 0, 0, 255]);
+    });
+
+    test('layer with 1024 viewBox at scale 1 covers the whole tile', async () => {
+      const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><rect width="1024" height="1024" fill="#ff0000"/></svg>');
+      const assets = new Map([['full.svg', svg]]);
+      const position = (scale: number) => ({ scale, 'translation-in-points': [0, 0] as [number, number] });
+      const manifest: IconManifest = {
+        groups: [{ layers: [layer('full.svg', { position: position(1) })] }],
+        'supported-platforms': {},
+        fill: { solid: 'srgb:0,0,1,1' },
+      };
+      const full = await getPixels(await renderPreview(manifest, assets, SIZE));
+      expect(pixelAt(full.data, 1, 1, full.width)).toEqual([255, 0, 0, 255]);
+      expect(pixelAt(full.data, SIZE - 2, SIZE - 2, full.width)).toEqual([255, 0, 0, 255]);
+
+      manifest.groups[0].layers[0].position = position(0.5);
+      const half = await getPixels(await renderPreview(manifest, assets, SIZE));
+      expect(pixelAt(half.data, 1, 1, half.width)).toEqual([0, 0, 255, 255]);
+      expect(pixelAt(half.data, 32, 32, half.width)).toEqual([255, 0, 0, 255]);
+    });
+
+    test('hidden layers and hidden-specializations are skipped', async () => {
+      const assets = new Map([['red.png', await solidPng(255, 0, 0)]]);
+      const manifest: IconManifest = {
+        groups: [{ layers: [layer('red.png', { 'hidden-specializations': [{ appearance: 'dark', value: true }] })] }],
+        'supported-platforms': {},
+        fill: { solid: 'srgb:0,0,1,1' },
+      };
+      const light = await getPixels(await renderPreview(manifest, assets, SIZE));
+      expect(pixelAt(light.data, 32, 32, light.width)).toEqual([255, 0, 0, 255]);
+      const dark = await getPixels(await renderPreview(manifest, assets, SIZE, 'dark'));
+      expect(pixelAt(dark.data, 32, 32, dark.width)).toEqual([0, 0, 255, 255]);
+    });
+  });
 });
 
 // --- resolveFill ---
