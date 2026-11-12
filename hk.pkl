@@ -15,6 +15,12 @@ steps {
     ["actionlint"] = Builtins.actionlint
     ["oxfmt"] = Builtins.oxfmt
     ["oxlint"] = Builtins.ox_lint
+    ["rumdl"] {
+        glob = "**/*.md"
+        depends = "oxfmt"
+        check = "rumdl check {{files}}"
+        fix = "hooks/rumdl-fix.sh {{files}}"
+    }
     ["zizmor"] = Builtins.zizmor
 }
 
@@ -33,5 +39,24 @@ hooks {
         fix = true
         stage = true
         stash = "git"
+    }
+    ["commit-msg"] {
+        steps {
+            ["conventional-commit"] = Builtins.check_conventional_commit
+        }
+    }
+    ["prepare-commit-msg"] {
+        steps {
+            ["czg"] {
+                interactive = true
+                check = #"""
+                    [ -z "{{source}}" ] || exit 0
+                    [ -z "${CI:-}" ] && [ -z "${HK_AGENT:-}" ] || exit 0
+                    ( : < /dev/tty ) 2>/dev/null || exit 0
+                    exec < /dev/tty
+                    czg --hook || true
+                    """#
+            }
+        }
     }
 }

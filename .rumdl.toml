@@ -1,0 +1,53 @@
+# Copy of hooks-lint-format/rumdl/.rumdl.toml plus repo-specific excludes and ignores.
+[global]
+extend-enable = ["MD060"]
+line_length = 120
+exclude = [
+  "CODE_OF_CONDUCT.md",
+  "skills/liquid-glass-app-icon/evals/**",
+  ".agents/**",
+  ".omp/**",
+  "docs/**",
+  "node_modules/**",
+  "dist/**",
+  "gallery/**",
+]
+
+[MD003]
+style = "atx"
+
+[MD004]
+style = "consistent"
+
+[MD007]
+indent = 2
+
+[MD009]
+strict = true
+
+# oxfmt does not wrap prose, so line length is not enforced.
+[MD013]
+enabled = false
+
+[MD029]
+style = "one_or_ordered"
+
+# oxfmt decides per item whether a list is loose; a mixed list is valid output.
+[MD076]
+enabled = false
+
+[MD046]
+style = "fenced"
+
+[MD049]
+style = "underscore"
+
+[MD050]
+style = "asterisk"
+
+[MD060]
+enabled = true
+style = "aligned"
+
+[per-file-ignores]
+"README.md" = ["MD033", "MD041"]
