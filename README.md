@@ -932,7 +932,8 @@ mise run gallery     # visual test gallery into gallery/
 `mise tasks` lists them. Each task wraps a `bun` command, so they also work without mise.
 
 Git hooks run through [hk](https://hk.jdx.dev) (`hk.pkl`): oxfmt, oxlint, rumdl, actionlint and zizmor on commit.
-`hk check --all` runs them without changing files; `hk fix --all` applies fixes.
+`hk check --all` runs them without changing files; `hk fix --all` applies fixes. CI runs `hk check --all` in
+`.github/workflows/hk.yml`, with `tsrs-lint` from the npm `tsrs` package.
 
 oxlint runs with `--type-aware --type-check`, so it also reports type errors. Its backend is `tsrs-lint` from
 [tsrs](https://github.com/oxc-project/tsrs), built from a local checkout:
