@@ -28,7 +28,7 @@ async function run(fn: () => Promise<McpResult>): Promise<void> {
 program
   .name('icon-composer')
   .description('Apple Icon Composer CLI — create and manipulate .icon bundles')
-  .version('1.1.1');
+  .version('1.2.0');
 
 // ── create ──
 
