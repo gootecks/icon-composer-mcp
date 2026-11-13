@@ -1,5 +1,5 @@
 #!/bin/bash
-# hk fix command for Markdown: rumdl check --fix, then the repo-mdsmith-fixer
+# hk fix command for Markdown: rumdl check --fix, then the repo-markdown-fixer
 # agent on what rumdl cannot fix. Fails while findings remain.
 # RUMDL_AGENT=0 skips the agent; the agent also never runs under CI.
 set -euo pipefail
@@ -7,7 +7,7 @@ set -euo pipefail
 rumdl check --fix "$@" || true
 rumdl check "$@" && exit 0
 
-agent="${RUMDL_AGENT_FILE:-$HOME/.omp/agent/agents/repo-mdsmith-fixer.md}"
+agent="${RUMDL_AGENT_FILE:-$HOME/.omp/agent/agents/repo-markdown-fixer.md}"
 if [[ ${RUMDL_AGENT:-1} == 0 || -n ${RUMDL_AGENT_RUNNING:-} || -n ${CI:-} ]]; then
     exit 1
 fi
@@ -25,7 +25,7 @@ if [[ -z ${files// /} ]]; then
     exit 1
 fi
 
-echo "rumdl-fix: asking repo-mdsmith-fixer ($model) to fix the findings above" >&2
+echo "rumdl-fix: asking repo-markdown-fixer ($model) to fix the findings above" >&2
 RUMDL_AGENT_RUNNING=1 omp -p --no-session --no-title --no-skills --no-rules \
     --model "$model" --append-system-prompt "$prompt" \
     --tools read,edit,grep,glob,bash --max-time "${RUMDL_AGENT_MAX_TIME:-5m}" \
