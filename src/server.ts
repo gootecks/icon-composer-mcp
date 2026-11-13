@@ -12,7 +12,7 @@ import { exportPreview, renderLiquidGlass, exportMarketing } from './lib/ops-ren
 const server = new McpServer(
   {
     name: 'icon-composer',
-    version: '1.0.0',
+    version: '1.1.1',
   },
   {
     instructions: `You are connected to icon-composer-mcp, a server for creating Apple .icon bundles with Liquid Glass effects for iOS 26+.

@@ -1,0 +1,10 @@
+# Copy of hooks-lint-format/commitizen/.cz.toml.
+[tool.commitizen]
+name = "cz_conventional_commits"
+version_provider = "npm"
+version_files = ["src/cli.ts:version", "src/server.ts:version"]
+version_scheme = "semver2"
+tag_format = "v$version"
+update_changelog_on_bump = true
+changelog_incremental = true
+bump_message = "chore(release): v$new_version"

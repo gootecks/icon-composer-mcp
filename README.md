@@ -943,3 +943,14 @@ mise run tsrs:install   # cargo install tsrs and tsrs-lint into ~/.local/bin
 ```
 
 Set `TSRS_DIR` when the checkout is elsewhere. `mise.toml` points `OXLINT_TSGOLINT_PATH` at `~/.local/bin/tsrs-lint`.
+
+### Releases
+
+`.github/workflows/release.yml` runs on every push to `main` and uses [commitizen](https://commitizen-tools.github.io/commitizen/) (`.cz.toml`):
+
+1. `cz bump --get-next` reads the Conventional Commits since the last tag. `fix` gives a patch, `feat` a minor and `!` or `BREAKING CHANGE` a major version. Without one of these the run ends there.
+2. `cz bump` writes the version to `package.json`, `src/cli.ts` and `src/server.ts`, adds the new section to `CHANGELOG.md`, and creates the `chore(release): vX.Y.Z` commit and the `vX.Y.Z` tag.
+3. Both binaries are built on macOS arm64 and packed as `icon-composer-vX.Y.Z-darwin-arm64.tar.gz` with a `.sha256` file.
+4. The commit and tag are pushed to `main`, and a GitHub Release is created with the new changelog section as its notes and the tarball attached.
+
+`mise run release:preview` prints the next version and its changelog section without changing anything. `CHANGELOG.md` is generated; do not edit it by hand.

@@ -66,3 +66,7 @@ run = "bun run src/cli.ts visual-test --out ./gallery"
 [tasks.pre-commit]
 description = "Run the hk pre-commit hooks"
 run = "hk run pre-commit"
+
+[tasks."release:preview"]
+description = "Print the next version and its changelog section (commitizen dry run)"
+run = "uvx --from commitizen==4.19.3 cz bump --dry-run --changelog-to-stdout"
